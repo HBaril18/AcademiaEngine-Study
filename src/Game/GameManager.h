@@ -5,6 +5,7 @@
 
 #ifdef ACADEMIA_EXAMPLE
 #include "ExampleGameObject.h"
+#include "Player.h"
 #endif
 
 class AcademiaEngine;
@@ -24,6 +25,7 @@ private:
 
 #ifdef ACADEMIA_EXAMPLE
     ExampleGameObject _ExampleObject;
+    Player _Player;
 #endif
 
 };

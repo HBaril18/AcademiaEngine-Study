@@ -7,8 +7,12 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
     _EngineContext = engineContext;
 
 #ifdef ACADEMIA_EXAMPLE
-    _ExampleObject.Position = { 0.0f, 0.0f };
+    _Player.Position = { 0.0f, 0.0f };
 #endif
+
+    //faire bouger la sphere (class playercharacter + characterMovement) 
+    //ennemie + bullet
+    //newworld (scene avec objet) plus vers la fin
 }
 
 void GameManager::Update(float elapsedTime)
@@ -25,8 +29,30 @@ void GameManager::Update(float elapsedTime)
     const olc::HWButton jumpButton = _EngineContext->GetKey(spaceKey);
     
     // Gameplay code
+    std::vector<float> direction;
+    if (moveRightButton.bPressed) {
+        direction = { 1.0, 0.0 };
+    }
+    else if (moveLeftButton.bPressed) {
+        direction = { -1.0, 0.0 };
+    }
+    else if (moveUpButton.bPressed) {
+        direction = { 0.0, 1.0 };
+    }
+    else if (moveDownButton.bPressed) {
+        direction = { 0.0, -1.0 };
+    }
+    else {
+        direction = { 0.0, 0.0 };
+    }
+
+    _Player.AddForce(*_EngineContext, 10, direction);
 #ifdef ACADEMIA_EXAMPLE
-    _ExampleObject.Update(elapsedTime);
-    _ExampleObject.Draw(*_EngineContext);
+    _Player.Update(elapsedTime);
+    _Player.Draw(*_EngineContext);
 #endif
+}
+
+void GameManager::Uninitialize() {
+    //detruit les new et pointeur que j'ai créer
 }

@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="src\Game\GameManager.cpp" />
     <ClCompile Include="src\Game\ExampleGameObject.cpp" />
     <ClCompile Include="external\olc\olcPGE_implementation.cpp" />
@@ -163,6 +164,8 @@
     <ClCompile Include="src\Engine\AcademiaEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Character.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="src\Game\GameManager.h" />
     <ClInclude Include="src\Game\GameObject.h" />
     <ClInclude Include="src\Game\ExampleGameObject.h" />
