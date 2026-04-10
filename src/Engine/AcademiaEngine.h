@@ -13,6 +13,7 @@ public:
 
     bool OnUserCreate() override;
     bool OnUserUpdate(float elapsedTime) override;
+    bool OnUserDestroy() override;
 
     olc::vi2d ConvertWorldPositionToPixels(const olc::vf2d& worldPosition) const;
     olc::vf2d ConvertPixelsToWorldPosition(const olc::vi2d& pixelsPosition) const;

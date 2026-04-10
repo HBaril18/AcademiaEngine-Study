@@ -2,7 +2,7 @@
 
 #include "../Game/GameManager.h"
 
-static AcademiaEngine* _Instance = nullptr;
+static std::unique_ptr<AcademiaEngine> _Instance = nullptr;
 
 AcademiaEngine::AcademiaEngine()
 {
@@ -23,6 +23,14 @@ bool AcademiaEngine::OnUserUpdate(float elapsedTime)
     Update(elapsedTime);
     PostUpdate(elapsedTime);
 
+    return true;
+}
+
+bool AcademiaEngine::OnUserDestroy()
+{
+    if (_GameManager)
+        _GameManager->Uninitialize();
+    
     return true;
 }
 
@@ -59,13 +67,13 @@ AcademiaEngine* AcademiaEngine::Instantiate()
 {
     if (!_Instance)
     {
-        _Instance = new AcademiaEngine;
+        _Instance.reset(new AcademiaEngine);
     }
 
-    return _Instance;
+    return _Instance.get();
 }
 
 AcademiaEngine* AcademiaEngine::GetInstance()
 {
-    return _Instance;
+    return _Instance.get();
 }

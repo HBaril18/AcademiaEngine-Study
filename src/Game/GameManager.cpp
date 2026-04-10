@@ -30,3 +30,8 @@ void GameManager::Update(float elapsedTime)
     _ExampleObject.Draw(*_EngineContext);
 #endif
 }
+
+void GameManager::Uninitialize()
+{
+    // Empty for now :) 
+}
