@@ -2,7 +2,7 @@
 
 #include "../Game/GameManager.h"
 
-static std::unique_ptr<AcademiaEngine> _Instance = nullptr;
+static AcademiaEngine* _Instance = nullptr;
 
 AcademiaEngine::AcademiaEngine()
 {
@@ -67,13 +67,13 @@ AcademiaEngine* AcademiaEngine::Instantiate()
 {
     if (!_Instance)
     {
-        _Instance.reset(new AcademiaEngine);
+        _Instance = new AcademiaEngine;
     }
 
-    return _Instance.get();
+    return _Instance;
 }
 
 AcademiaEngine* AcademiaEngine::GetInstance()
 {
-    return _Instance.get();
+    return _Instance;
 }
