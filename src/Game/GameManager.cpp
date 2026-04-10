@@ -22,31 +22,35 @@ void GameManager::Update(float elapsedTime)
     constexpr olc::Key upKey = olc::Key::W;
     constexpr olc::Key downKey = olc::Key::S;
     constexpr olc::Key spaceKey = olc::Key::SPACE;
+	constexpr olc::Key shiftKey = olc::Key::SHIFT;
     const olc::HWButton moveRightButton = _EngineContext->GetKey(rightKey);
     const olc::HWButton moveLeftButton = _EngineContext->GetKey(leftKey);
     const olc::HWButton moveUpButton = _EngineContext->GetKey(upKey);
     const olc::HWButton moveDownButton = _EngineContext->GetKey(downKey);
     const olc::HWButton jumpButton = _EngineContext->GetKey(spaceKey);
+	const olc::HWButton sneakButton = _EngineContext->GetKey(shiftKey);
     
     // Gameplay code
-    std::vector<float> direction;
-    if (moveRightButton.bPressed) {
-        direction = { 1.0, 0.0 };
-    }
-    else if (moveLeftButton.bPressed) {
-        direction = { -1.0, 0.0 };
-    }
-    else if (moveUpButton.bPressed) {
-        direction = { 0.0, 1.0 };
-    }
-    else if (moveDownButton.bPressed) {
-        direction = { 0.0, -1.0 };
-    }
-    else {
-        direction = { 0.0, 0.0 };
+    //Movement handle
+    float x = 0.0f;
+    float y = 0.0f;
+
+    if (moveRightButton.bHeld) { x += 1.0f; }
+    if (moveLeftButton.bHeld)  { x -= 1.0f; }
+    if (moveUpButton.bHeld)    { y += 1.0f; }
+    if (moveDownButton.bHeld)  { y -= 1.0f; }
+	if (sneakButton.bHeld) { x *= 0.2f; y *= 0.2f; }
+
+    // Normalize diagonal movement
+    if (x != 0.0f && y != 0.0f) {
+        x *= 0.5f;
+        y *= 0.5f;
     }
 
-    _Player.AddForce(*_EngineContext, 10, direction);
+    std::vector<float> direction = { x, y };
+
+    _Player.AddForce(*_EngineContext, 0.7, direction);
+	_Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
 #ifdef ACADEMIA_EXAMPLE
     _Player.Update(elapsedTime);
     _Player.Draw(*_EngineContext);

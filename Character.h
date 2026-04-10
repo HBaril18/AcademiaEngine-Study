@@ -1,6 +1,12 @@
 #pragma once
 #include "../AcademiaEngine-Study/src/Game/GameObject.h"
 
+/*----------------------------------*/
+//                                  //
+// MADE BY HENRICK BARIL 2026-04-09 //
+//                                  //
+/*----------------------------------*/
+
 class Character : public GameObject
 {
 public:
