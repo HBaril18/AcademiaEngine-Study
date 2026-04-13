@@ -10,16 +10,13 @@
 
 void Player::Draw(AcademiaEngine& engine) {
 	olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
-	engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color);
-	float x1 = pixelPos.x - (Radius/2);
-	float x2 = pixelPos.x + (Radius/2);
-	olc::vf2d direction = engine.ConvertWorldPositionToPixels(GetPlayerDirection(engine));
-	float length = std::sqrt(std::pow(direction.x - pixelPos.x, 2) + std::pow(direction.y - pixelPos.y, 2));
-	if (length+10 > Radius) {
-		direction.x = pixelPos.x + (direction.x - pixelPos.x) * ((Radius + 10) / length);
-		direction.y = pixelPos.y + (direction.y - pixelPos.y) * ((Radius + 10) / length);
-	}
-	engine.DrawLine(pixelPos.x, pixelPos.y, direction.x, direction.y, Color);
+	engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color); //Player core
+	olc::vf2d direction = GetPlayerDirection(engine); //Cursor direction
+	direction = direction.norm();
+	float length = Radius + 20; //Length of the barrell
+	olc::vf2d endWorldPos = Position + direction * length;
+	olc::vi2d endPixelPos = engine.ConvertWorldPositionToPixels(endWorldPos);
+	engine.DrawLine(pixelPos.x, pixelPos.y, endPixelPos.x, endPixelPos.y, Color);
 }
 
 olc::vf2d Player::GetPlayerDirection(AcademiaEngine& engine) {
@@ -48,4 +45,13 @@ olc::vf2d Player::GetCursorPosition(AcademiaEngine& engine) {
 	olc::vi2d cursorPixelPos = engine.GetMousePos();
 	olc::vf2d cursorWorldPos = engine.ConvertPixelsToWorldPosition(cursorPixelPos);
 	return cursorWorldPos;
+}
+
+void Player::SpawnBullet(AcademiaEngine& engine, Bullet* bullet) {
+	bullet = new Bullet();
+	bullet->Position = Position; // Set the bullet's initial position to the player's position
+	olc::vf2d direction = GetPlayerDirection(engine);
+	bullet->SetDirection(direction);
+	bullet->Update(0.016f); // Update the bullet's position immediately after spawning
+	std::cout << "Bullet Spawned" << std::endl;
 }

@@ -40,6 +40,10 @@ void GameManager::Update(float elapsedTime)
     if (moveUpButton.bHeld)    { y += 1.0f; }
     if (moveDownButton.bHeld)  { y -= 1.0f; }
 	if (sneakButton.bHeld) { x *= 0.2f; y *= 0.2f; }
+    if (_EngineContext->GetMouse(0).bPressed) {
+        _Player.SpawnBullet(*_EngineContext, _Player.bullet);
+
+    }
 
     // Normalize diagonal movement
     if (x != 0.0f && y != 0.0f) {
@@ -54,6 +58,7 @@ void GameManager::Update(float elapsedTime)
 #ifdef ACADEMIA_EXAMPLE
     _Player.Update(elapsedTime);
     _Player.Draw(*_EngineContext);
+	_Bullet.Update(elapsedTime);
 #endif
 }
 
