@@ -13,6 +13,6 @@ olc::vf2d GetPlayerPosition(AcademiaEngine& engine, Player& player) {
 	return {};
 }
 
-void GoToPlayer(olc::vf2d playerPosition) {
-	
+void GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition) {
+	AddForce(engine, force, playerPosition);
 }

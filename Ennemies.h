@@ -14,7 +14,7 @@ public:
     void Draw(AcademiaEngine& engine) override;
     void AddForce(AcademiaEngine& engine, float force, std::vector<float> direction);
     olc::vf2d GetPlayerPosition(AcademiaEngine& engine, Player player);
-    void GoToPlayer(olc::vf2d playerPosition);
+    void GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition);
 
     float Radius = 20.0f;
     olc::Pixel Color = olc::WHITE;
