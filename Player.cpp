@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
 #include <vector>
+#include "Ennemies.h"
 
 /*----------------------------------*/
 //                                  //
@@ -50,8 +51,8 @@ olc::vf2d Player::GetCursorPosition(AcademiaEngine& engine) {
 void Player::SpawnBullet(AcademiaEngine& engine, Bullet* bullet) {
 	bullet = new Bullet();
 	bullet->Position = Position; // Set the bullet's initial position to the player's position
+	bullet->Draw(engine); // Draw the bullet immediately after spawning
 	olc::vf2d direction = GetPlayerDirection(engine);
 	bullet->SetDirection(direction);
-	bullet->Update(0.016f); // Update the bullet's position immediately after spawning
 	std::cout << "Bullet Spawned" << std::endl;
 }

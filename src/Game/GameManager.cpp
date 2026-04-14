@@ -42,7 +42,6 @@ void GameManager::Update(float elapsedTime)
 	if (sneakButton.bHeld) { x *= 0.2f; y *= 0.2f; }
     if (_EngineContext->GetMouse(0).bPressed) {
         _Player.SpawnBullet(*_EngineContext, _Player.bullet);
-
     }
 
     // Normalize diagonal movement
@@ -53,12 +52,15 @@ void GameManager::Update(float elapsedTime)
 
     std::vector<float> direction = { x, y };
 
-    _Player.AddForce(*_EngineContext, 0.7, direction);
-	_Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
 #ifdef ACADEMIA_EXAMPLE
+    _Player.AddForce(*_EngineContext, 0.7, direction);
+    _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     _Player.Update(elapsedTime);
     _Player.Draw(*_EngineContext);
 	_Bullet.Update(elapsedTime);
+	_Ennemies.Update(elapsedTime);
+	_Ennemies.Draw(*_EngineContext);
+	_Ennemies.GoToPlayer(*_EngineContext, 0.5f, _Ennemies.GetPlayerPosition(*_EngineContext, _Player));
 #endif
 }
 

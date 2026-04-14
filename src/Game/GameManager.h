@@ -7,6 +7,7 @@
 #include "ExampleGameObject.h"
 #include "Player.h"
 #include "Bullet.h"
+#include "Ennemies.h"
 #endif
 
 class AcademiaEngine;
@@ -28,6 +29,7 @@ private:
     ExampleGameObject _ExampleObject;
     Player _Player;
 	Bullet _Bullet;
+    Ennemies _Ennemies;
 #endif
 
 };

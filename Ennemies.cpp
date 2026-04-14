@@ -6,13 +6,15 @@ void Ennemies::Draw(AcademiaEngine& engine) {
 	engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color);
 }
 
-olc::vf2d GetPlayerPosition(AcademiaEngine& engine, Player& player) {
-	if (&player) {
-		return player.Position;
-	}
-	return {};
+olc::vf2d Ennemies::GetPlayerPosition(AcademiaEngine& engine, Player& player) {
+	return player.Position;
 }
 
-void GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition) {
+void Ennemies::GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition) {
 	AddForce(engine, force, playerPosition);
+}
+
+void Ennemies::AddForce(AcademiaEngine& engine, float force, olc::vf2d direction)
+{
+	Position += direction * force;
 }
