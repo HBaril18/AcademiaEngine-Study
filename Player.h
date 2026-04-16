@@ -1,6 +1,7 @@
 #pragma once
 #include "Character.h"
 #include "Bullet.h"
+#include <deque>
 
 /*----------------------------------*/
 //                                  //
@@ -16,9 +17,9 @@ public:
     void AddForce(AcademiaEngine& engine, float force, std::vector<float> direction);
     olc::vf2d GetCursorPosition(AcademiaEngine& engine);
 	olc::vf2d GetPlayerDirection(AcademiaEngine& engine);
-    void SpawnBullet(AcademiaEngine& engine, Bullet* bullet);
+    void SpawnBullet(AcademiaEngine& engine);
 
     float Radius = 20.0f;
     olc::Pixel Color = olc::WHITE;
-	Bullet* bullet = nullptr;
+    std::deque<Bullet> bullets;
 };

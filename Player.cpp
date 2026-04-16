@@ -1,6 +1,5 @@
 #include "Player.h"
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
-#include <vector>
 #include "Ennemies.h"
 
 /*----------------------------------*/
@@ -9,7 +8,7 @@
 //                                  //
 /*----------------------------------*/
 
-void Player::Draw(AcademiaEngine& engine) {
+void Player::Draw(AcademiaEngine& engine) { //Draw the player as a circle and a barrel pointing towards the cursor
 	olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
 	engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color); //Player core
 	olc::vf2d direction = GetPlayerDirection(engine); //Cursor direction
@@ -18,6 +17,19 @@ void Player::Draw(AcademiaEngine& engine) {
 	olc::vf2d endWorldPos = Position + direction * length;
 	olc::vi2d endPixelPos = engine.ConvertWorldPositionToPixels(endWorldPos);
 	engine.DrawLine(pixelPos.x, pixelPos.y, endPixelPos.x, endPixelPos.y, Color);
+}
+
+void Player::SpawnBullet(AcademiaEngine& engine) {
+	Bullet bullet = Bullet(); // Create a new bullet instance
+	bullet.Position = Position; // Set the bullet's initial position to the player's position 
+	olc::vf2d direction = GetPlayerDirection(engine);
+	if (direction.mag() > 0.0f)
+		direction = direction.norm();
+	else
+		direction = { 1.0f, 0.0f }; // default direction
+	bullet.SetDirection(direction);
+	bullets.push_back(bullet); // Add the bullet to the player's bullet list
+	std::cout << "Bullet deque" << bullets.size() << std::endl;
 }
 
 olc::vf2d Player::GetPlayerDirection(AcademiaEngine& engine) {
@@ -36,7 +48,6 @@ void Player::AddForce(AcademiaEngine& engine, float force, std::vector<float> di
 		if (direction[i]) {
 			Position.x += direction[0] * force;
 			Position.y += direction[1] * force;
-			//std::cout << "Nouvelle position : x -> " << Position.a()[0] << ", y -> " << Position.a()[1] << std::endl;
 		}
 	}
 	olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
@@ -46,13 +57,4 @@ olc::vf2d Player::GetCursorPosition(AcademiaEngine& engine) {
 	olc::vi2d cursorPixelPos = engine.GetMousePos();
 	olc::vf2d cursorWorldPos = engine.ConvertPixelsToWorldPosition(cursorPixelPos);
 	return cursorWorldPos;
-}
-
-void Player::SpawnBullet(AcademiaEngine& engine, Bullet* bullet) {
-	bullet = new Bullet();
-	bullet->Position = Position; // Set the bullet's initial position to the player's position
-	bullet->Draw(engine); // Draw the bullet immediately after spawning
-	olc::vf2d direction = GetPlayerDirection(engine);
-	bullet->SetDirection(direction);
-	std::cout << "Bullet Spawned" << std::endl;
 }

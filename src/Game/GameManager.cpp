@@ -41,7 +41,7 @@ void GameManager::Update(float elapsedTime)
     if (moveDownButton.bHeld)  { y -= 1.0f; }
 	if (sneakButton.bHeld) { x *= 0.2f; y *= 0.2f; }
     if (_EngineContext->GetMouse(0).bPressed) {
-        _Player.SpawnBullet(*_EngineContext, _Player.bullet);
+        _Player.SpawnBullet(*_EngineContext);
     }
 
     // Normalize diagonal movement
@@ -53,14 +53,28 @@ void GameManager::Update(float elapsedTime)
     std::vector<float> direction = { x, y };
 
 #ifdef ACADEMIA_EXAMPLE
+    for (auto& bullet : _Player.bullets) {
+        bullet.Update(elapsedTime);
+        bullet.Draw(*_EngineContext);
+    }
+	_Player.bullets.erase( // taken from ChatGPT (to remove bullets that are out of the screen)
+        std::remove_if(_Player.bullets.begin(), _Player.bullets.end(),
+            [&](const Bullet& bullet) {
+                olc::vi2d pixel = _EngineContext->ConvertWorldPositionToPixels(bullet.Position);
+
+                return pixel.x < 0 || pixel.x > _EngineContext->ScreenWidth() ||
+                    pixel.y < 0 || pixel.y > _EngineContext->ScreenHeight();
+            }),
+        _Player.bullets.end()
+    );
     _Player.AddForce(*_EngineContext, 0.7, direction);
     _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     _Player.Update(elapsedTime);
     _Player.Draw(*_EngineContext);
-	_Bullet.Update(elapsedTime);
-	_Ennemies.Update(elapsedTime);
-	_Ennemies.Draw(*_EngineContext);
-	_Ennemies.GoToPlayer(*_EngineContext, 0.5f, _Ennemies.GetPlayerPosition(*_EngineContext, _Player));
+
+	//_Ennemies.Update(elapsedTime);
+	//_Ennemies.Draw(*_EngineContext);
+	//_Ennemies.GoToPlayer(*_EngineContext, 0.5f, _Ennemies.GetPlayerPosition(*_EngineContext, _Player));
 #endif
 }
 

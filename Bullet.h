@@ -1,6 +1,6 @@
 #pragma once
 #include "Character.h"
-#include "Player.h"
+#include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
 
 /*----------------------------------*/
 //                                  //
@@ -11,17 +11,13 @@
 class Bullet : public Character
 {
 public:
-    void SetDirection(const olc::vf2d& dir)
-    {
-        direction = dir;
-    }
-
-    void Update(float elapsedTime) override
-    {
-        Position += direction * speed * elapsedTime;
-    }
+    void SetDirection(const olc::vf2d& dir);
+	void Update(float elapsedTime) override;
+    void Draw(AcademiaEngine& engine) override;
 
 private:
     olc::vf2d direction;
-    float speed = 200.0f;
+    olc::Pixel Color = olc::DARK_YELLOW;
+    float speed = 1200.0f;
+	float radius = 5.0f;
 };
