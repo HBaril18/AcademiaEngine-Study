@@ -7,7 +7,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
     _EngineContext = engineContext;
 
 #ifdef ACADEMIA_EXAMPLE
-    _Player.Position = { 0.0f, 0.0f };
+    _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
 #endif
 
     //faire bouger la sphere (class playercharacter + characterMovement) 
@@ -35,6 +35,7 @@ void GameManager::Update(float elapsedTime)
     float x = 0.0f;
     float y = 0.0f;
 
+    // This is very good, I don't like input code, it looks ugly I find :p, but there is no better way than this. Good Job :) 
     if (moveRightButton.bHeld) { x += 1.0f; }
     if (moveLeftButton.bHeld)  { x -= 1.0f; }
     if (moveUpButton.bHeld)    { y += 1.0f; }
@@ -57,16 +58,21 @@ void GameManager::Update(float elapsedTime)
         bullet.Update(elapsedTime);
         bullet.Draw(*_EngineContext);
     }
+    
+    // As discussed, this should be the responsibility of the player to update its bullets with this design.
+    // Try to move this logic inside the player's update function :) 
 	_Player.bullets.erase( // taken from ChatGPT (to remove bullets that are out of the screen)
         std::remove_if(_Player.bullets.begin(), _Player.bullets.end(),
             [&](const Bullet& bullet) {
-                olc::vi2d pixel = _EngineContext->ConvertWorldPositionToPixels(bullet.Position);
+                olc::vi2d pixel = _EngineContext->ConvertWorldPositionToPixels(bullet.GetPosition());
 
                 return pixel.x < 0 || pixel.x > _EngineContext->ScreenWidth() ||
                     pixel.y < 0 || pixel.y > _EngineContext->ScreenHeight();
             }),
         _Player.bullets.end()
     );
+    
+    // direction should be multiplied by the `elapsedTime` to not be frame rate dependent.
     _Player.AddForce(*_EngineContext, 0.7, direction);
     _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     _Player.Update(elapsedTime);
@@ -79,5 +85,5 @@ void GameManager::Update(float elapsedTime)
 }
 
 void GameManager::Uninitialize() {
-    //detruit les new et pointeur que j'ai créer
+    //detruit les new et pointeur que j'ai crï¿½er
 }

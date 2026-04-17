@@ -7,6 +7,7 @@ void Bullet::Draw(AcademiaEngine& engine) {
 
 void Bullet::Update(float elapsedTime)
 {
+    // Beautiful `* elapsedTime` :) 
     Position += direction * speed * elapsedTime;
 }
 
