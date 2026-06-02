@@ -1,7 +1,6 @@
 #pragma once
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
 #include "Ennemies.h"
-#include "Player.h"
 
 class AcademiaEngine;
 
@@ -16,7 +15,7 @@ public:
     const olc::vf2d& GetPosition() const { return Position; }
     void SetPosition(const olc::vf2d& position) { Position = position; }
 
-    void SpawnEnnemies(AcademiaEngine& engine, Player* player);
+    void SpawnEnnemies(AcademiaEngine& engine);
     std::deque<Ennemies>& GetEnnemies() { return ennemies; }
 
 protected:
