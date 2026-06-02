@@ -5,13 +5,17 @@ void Bullet::Draw(AcademiaEngine& engine) {
     engine.FillCircle(pixelPos, static_cast<int32_t>(radius), Color);
 }
 
-void Bullet::Update(float elapsedTime)
+void Bullet::Update(AcademiaEngine& engine, float elapsedTime)
 {
-    // Beautiful `* elapsedTime` :) 
     Position += direction * speed * elapsedTime;
 }
 
 void Bullet::SetDirection(const olc::vf2d& dir)
 {
     direction = dir;
+}
+
+olc::vf2d Bullet::GetDirection()
+{
+	return direction;
 }

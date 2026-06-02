@@ -13,14 +13,19 @@ class Ennemies : public Character
 {
 public:
     void Draw(AcademiaEngine& engine) override;
-    void AddForce(AcademiaEngine& engine, float force, olc::vf2d direction);
-    
-    // Pass the Player as a const Player& to document that the Player will not be modified here. 
-    // GetPlayerPosition can be made const too, as it won't change your Ennemies instance.
-    const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine, const Player& player) const;
-    void GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition);
+    void AddForce(AcademiaEngine& engine, float force, olc::vf2d direction, float elapsedTime);
+    void Update(AcademiaEngine& engine, float elapsedTime);
+
+    const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine) const;
+    void GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition, float elapsedTime);
+
+    const Player* GetPlayer() const { return player; }
+    void SetPlayer(const Player* p){ player = p; }
 
 protected:
     float Radius = 20.0f;
     olc::Pixel Color = olc::WHITE;
+
+private:
+    const Player* player = nullptr;
 };

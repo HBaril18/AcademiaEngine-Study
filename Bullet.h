@@ -11,8 +11,9 @@
 class Bullet : public Character
 {
 public:
+    olc::vf2d GetDirection();
     void SetDirection(const olc::vf2d& dir);
-	void Update(float elapsedTime) override;
+	void Update(AcademiaEngine& engine, float elapsedTime) override;
     void Draw(AcademiaEngine& engine) override;
 
 private:

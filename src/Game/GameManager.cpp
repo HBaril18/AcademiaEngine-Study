@@ -1,6 +1,7 @@
 #include "GameManager.h"
 #include "../../external/olc/olcPixelGameEngine.h"
 #include "../Engine/AcademiaEngine.h"
+#include <chrono>
 
 void GameManager::Initialize(AcademiaEngine* engineContext)
 {
@@ -8,11 +9,16 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
 
 #ifdef ACADEMIA_EXAMPLE
     _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
-#endif
+    _Spawner.SetPosition(olc::vf2d(100.0f, 100.0f));
 
-    //faire bouger la sphere (class playercharacter + characterMovement) 
-    //ennemie + bullet
-    //newworld (scene avec objet) plus vers la fin
+    // Setup spawner timer to run every 5 seconds
+    auto spawnTask = [this]() {
+        _SpawnRequested.store(true);
+    };
+
+    _SpawnerTimer = std::make_unique<PeriodicTimer>(std::chrono::seconds(5), spawnTask);
+    _SpawnerTimer->start();
+#endif
 }
 
 void GameManager::Update(float elapsedTime)
@@ -45,6 +51,13 @@ void GameManager::Update(float elapsedTime)
         _Player.SpawnBullet(*_EngineContext);
     }
 
+    /* SPAWNER handled by PeriodicTimer started in Initialize() */
+
+    // Process spawn requests signalled by the timer
+    if (_SpawnRequested.exchange(false)) {
+        _Spawner.SpawnEnnemies(*_EngineContext, &_Player);
+    }
+
     // Normalize diagonal movement
     if (x != 0.0f && y != 0.0f) {
         x *= 0.5f;
@@ -54,31 +67,27 @@ void GameManager::Update(float elapsedTime)
     std::vector<float> direction = { x, y };
 
 #ifdef ACADEMIA_EXAMPLE
-    for (auto& bullet : _Player.bullets) {
-        bullet.Update(elapsedTime);
+	std::deque<Bullet>& bullets = _Player.GetBullets();
+    for (auto& bullet : bullets) {
+        bullet.Update(*_EngineContext, elapsedTime);
         bullet.Draw(*_EngineContext);
     }
-    
-    // As discussed, this should be the responsibility of the player to update its bullets with this design.
-    // Try to move this logic inside the player's update function :) 
-	_Player.bullets.erase( // taken from ChatGPT (to remove bullets that are out of the screen)
-        std::remove_if(_Player.bullets.begin(), _Player.bullets.end(),
-            [&](const Bullet& bullet) {
-                olc::vi2d pixel = _EngineContext->ConvertWorldPositionToPixels(bullet.GetPosition());
 
-                return pixel.x < 0 || pixel.x > _EngineContext->ScreenWidth() ||
-                    pixel.y < 0 || pixel.y > _EngineContext->ScreenHeight();
-            }),
-        _Player.bullets.end()
-    );
+    std::deque<Ennemies>& enemys = _Spawner.GetEnnemies();
+    for (auto& enemy : enemys)
+    {
+        enemy.Update(*_EngineContext, elapsedTime);
+        enemy.Draw(*_EngineContext);
+    }
     
-    // direction should be multiplied by the `elapsedTime` to not be frame rate dependent.
-    _Player.AddForce(*_EngineContext, 0.7, direction);
+    _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
     _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
-    _Player.Update(elapsedTime);
+    _Player.Update(*_EngineContext, elapsedTime);
     _Player.Draw(*_EngineContext);
 
-	//_Ennemies.Update(elapsedTime);
+
+
+	//_Ennemies.Update(*_EngineContext, elapsedTime, _Player);
 	//_Ennemies.Draw(*_EngineContext);
 	//_Ennemies.GoToPlayer(*_EngineContext, 0.5f, _Ennemies.GetPlayerPosition(*_EngineContext, _Player));
 #endif
@@ -86,4 +95,8 @@ void GameManager::Update(float elapsedTime)
 
 void GameManager::Uninitialize() {
     //detruit les new et pointeur que j'ai cr�er
+    if (_SpawnerTimer) {
+        _SpawnerTimer->stop();
+        _SpawnerTimer.reset();
+    }
 }

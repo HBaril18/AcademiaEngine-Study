@@ -1,6 +1,5 @@
 #include "Player.h"
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
-#include "Ennemies.h"
 
 /*----------------------------------*/
 //                                  //
@@ -8,14 +7,12 @@
 //                                  //
 /*----------------------------------*/
 
+void Player::Update(AcademiaEngine& engine, float elapsedTime) {
+	UpdateBullets(engine);
+}
+
 void Player::Draw(AcademiaEngine& engine) 
-{ 
-	// Advice : Readability is very important. Leave some empty lines, and space in your code to help reading.
-	// I have reformated this function as an example
-	
-	//Draw the player as a circle and a barrel pointing towards the cursor
-	
-	// Use `const` as much as you can. The compiler will understand that the value won't change, which will allow it to optimize the compiled code.
+{
 	const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
 	engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color); //Player core
 	
@@ -33,14 +30,16 @@ void Player::Draw(AcademiaEngine& engine)
 void Player::SpawnBullet(AcademiaEngine& engine) {
 	Bullet bullet = Bullet(); // Create a new bullet instance
 	bullet.SetPosition(Position); // Set the bullet's initial position to the player's position 
+	
 	olc::vf2d direction = GetPlayerDirection(engine);
+	
 	if (direction.mag() > 0.0f)
 		direction = direction.norm();
 	else
 		direction = { 1.0f, 0.0f }; // default direction
 	bullet.SetDirection(direction);
 	bullets.push_back(bullet); // Add the bullet to the player's bullet list
-	std::cout << "Bullet deque" << bullets.size() << std::endl;
+	//std::cout << "Bullet deque" << bullets.size() << std::endl;
 }
 
 olc::vf2d Player::GetPlayerDirection(AcademiaEngine& engine) const {
@@ -54,14 +53,10 @@ void Player::DrawCursor(AcademiaEngine& engine, olc::vf2d cursorWorldPos) {
 	engine.DrawCircle(cursorPixelPos, 5, olc::RED);
 }
 
-void Player::AddForce(AcademiaEngine& engine, float force, const std::vector<float>& direction) {
+void Player::AddForce(AcademiaEngine& engine, float force, const std::vector<float>& direction, float elapsedTime) {
 	for (int i = 0; i < direction.size(); i++) {
-		// implicit cast from float to bool. I wouldn't recommend.
-		// Moreover this is not required, if 0, the Position won't change (0 x force = 0)
-		if (direction[i]) {
-			Position.x += direction[0] * force;
-			Position.y += direction[1] * force;
-		}
+		Position.x += direction[0] * force * elapsedTime;
+		Position.y += direction[1] * force * elapsedTime;
 	}
 	olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
 }
@@ -74,4 +69,17 @@ olc::vf2d Player::GetCursorPosition(AcademiaEngine& engine) const {
 	// Here the copy is fine because ConvertPixelsToWorldPosition will return a copy
 	olc::vf2d cursorWorldPos = engine.ConvertPixelsToWorldPosition(cursorPixelPos);
 	return cursorWorldPos;
+}
+
+void Player::UpdateBullets(AcademiaEngine& engineContext) {
+	bullets.erase( // taken from ChatGPT (to remove bullets that are out of the screen)
+		std::remove_if(bullets.begin(), bullets.end(),
+			[&](const Bullet& bullet) {
+				olc::vi2d pixel = engineContext.ConvertWorldPositionToPixels(bullet.GetPosition());
+
+				return pixel.x < 0 || pixel.x > engineContext.ScreenWidth() ||
+					pixel.y < 0 || pixel.y > engineContext.ScreenHeight();
+			}),
+		bullets.end()
+	);
 }

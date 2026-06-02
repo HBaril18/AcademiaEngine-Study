@@ -1,5 +1,8 @@
 #pragma once
 #include <Utils.h>
+#include <memory>
+#include <atomic>
+#include "../../PeriodicTimer.h"
 
 #define ACADEMIA_EXAMPLE
 
@@ -8,6 +11,7 @@
 #include "Player.h"
 #include "Bullet.h"
 #include "Ennemies.h"
+#include "Spawner.h"
 #endif
 
 class AcademiaEngine;
@@ -30,6 +34,9 @@ private:
     Player _Player;
 	Bullet _Bullet;
     Ennemies _Ennemies;
+    Spawner _Spawner;
+    std::unique_ptr<PeriodicTimer> _SpawnerTimer;
+    std::atomic<bool> _SpawnRequested{false};
 #endif
 
 };
