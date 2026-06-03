@@ -1,6 +1,11 @@
 #pragma once
 #include "Character.h"
 #include "Player.h"
+#include "Collider.h"
+#include "CollisionManager.h"
+
+// Forward declare CollisionManager to avoid including its header here
+class CollisionManager;
 
 /*----------------------------------*/
 //                                  //
@@ -12,19 +17,36 @@
 class Ennemies : public Character
 {
 public:
+    Ennemies();
+    Ennemies(olc::vf2d pos, float radius);
+
+    ~Ennemies();
+
+    CollisionManager* collisionManager = nullptr;
+    Collider* collider = nullptr;
+    olc::vf2d direction;
+
     void Draw(AcademiaEngine& engine) override;
     void AddForce(AcademiaEngine& engine, float force, olc::vf2d direction, float elapsedTime);
     void Update(AcademiaEngine& engine, float elapsedTime);
 
+    void TakeDamage(float damage);
+    void RemoveEnnemie(std::deque<Ennemies>& ennemies);
+
     const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine) const;
-    void GoToPlayer(AcademiaEngine& engine, float force, olc::vf2d playerPosition, float elapsedTime);
+    void GetDirection(AcademiaEngine& engine, olc::vf2d playerPosition);
 
     const Player* GetPlayer() const { return player; }
     void SetPlayer(const Player* p){ player = p; }
 
+    float GetRadius() const { return Radius; }
+
+	float GetHealth() const { return Health; }
+
 protected:
-    float Radius = 20.0f;
-    olc::Pixel Color = olc::WHITE;
+    float Radius = 15.0f;
+    olc::Pixel Color = olc::DARK_BLUE;
+	float Health = 50.0f;
 
 private:
     const Player* player = nullptr;

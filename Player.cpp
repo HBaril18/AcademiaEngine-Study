@@ -9,6 +9,9 @@
 
 void Player::Update(AcademiaEngine& engine, float elapsedTime) {
 	UpdateBullets(engine);
+	if (damageCooldown > 0.0f) {
+		damageCooldown -= elapsedTime;
+	}
 }
 
 void Player::Draw(AcademiaEngine& engine) 

@@ -55,7 +55,7 @@ void GameManager::Update(float elapsedTime)
 
     // Process spawn requests signalled by the timer
     if (_SpawnRequested.exchange(false)) {
-        _Spawner.SpawnEnnemies(*_EngineContext, &_Player);
+        _Spawner.SpawnEnnemies(*_EngineContext, &_Player, &_CollisionManager);
     }
 
     // Normalize diagonal movement
@@ -79,17 +79,12 @@ void GameManager::Update(float elapsedTime)
         enemy.Update(*_EngineContext, elapsedTime);
         enemy.Draw(*_EngineContext);
     }
+    _Ennemies.RemoveEnnemie(enemys);
     
     _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
     _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     _Player.Update(*_EngineContext, elapsedTime);
     _Player.Draw(*_EngineContext);
-
-
-
-	//_Ennemies.Update(*_EngineContext, elapsedTime, _Player);
-	//_Ennemies.Draw(*_EngineContext);
-	//_Ennemies.GoToPlayer(*_EngineContext, 0.5f, _Ennemies.GetPlayerPosition(*_EngineContext, _Player));
 #endif
 }
 

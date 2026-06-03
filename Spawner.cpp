@@ -6,13 +6,19 @@
 //                                  //
 /*----------------------------------*/
 
-void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player) {
+void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionManager* collisionManager) {
+	// Construct enemy in-place in the deque using current Position and default radius
+	ennemies.emplace_back(Position, 15.0f);
+	Ennemies& ennemie = ennemies.back();
 
-	Ennemies ennemie = Ennemies(); // Create a new ennemie instance
+	// set player reference
+	ennemie.SetPlayer(player);
 
-	ennemie.SetPosition(Position); // Set the ennemie's initial position to the spawner's position 
-	ennemie.SetPlayer(player); // Set reference to player
+	// set shared collision manager and register collider if available
+	if (collisionManager) {
+		ennemie.collisionManager = collisionManager;
+		if (ennemie.collider) collisionManager->RegisterCollider(ennemie.collider);
+	}
 
-	ennemies.push_back(ennemie); // Add the enemy to the spawner's list
 	std::cout << "Ennemie deque" << ennemies.size() << std::endl;
 }

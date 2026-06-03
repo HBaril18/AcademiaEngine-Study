@@ -12,6 +12,7 @@
 #include "Bullet.h"
 #include "Ennemies.h"
 #include "Spawner.h"
+#include "../../CollisionManager.h"
 #endif
 
 class AcademiaEngine;
@@ -35,6 +36,7 @@ private:
 	Bullet _Bullet;
     Ennemies _Ennemies;
     Spawner _Spawner;
+    CollisionManager _CollisionManager;
     std::unique_ptr<PeriodicTimer> _SpawnerTimer;
     std::atomic<bool> _SpawnRequested{false};
 #endif

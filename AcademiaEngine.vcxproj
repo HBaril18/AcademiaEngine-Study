@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Bullet.cpp" />
+    <ClCompile Include="CollisionManager.cpp" />
     <ClCompile Include="Ennemies.cpp" />
     <ClCompile Include="PeriodicTimer.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -170,6 +171,8 @@
   <ItemGroup>
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="Character.h" />
+    <ClInclude Include="Collider.h" />
+    <ClInclude Include="CollisionManager.h" />
     <ClInclude Include="PeriodicTimer.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Spawner.h" />
