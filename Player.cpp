@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
+#include "CollisionManager.h"
 
 /*----------------------------------*/
 //                                  //
@@ -11,6 +12,30 @@ void Player::Update(AcademiaEngine& engine, float elapsedTime) {
 	UpdateBullets(engine);
 	if (damageCooldown > 0.0f) {
 		damageCooldown -= elapsedTime;
+	}
+	if (collider) {
+		collider->position = Position;
+	}
+}
+
+void Player::InitializeCollision(CollisionManager* collisionManager) {
+	if (!collider) {
+		collider = new Collider();
+		collider->owner = this;
+		collider->position = Position;
+		collider->size = Radius;
+		collider->layer = 1; // Player layer
+		collider->type = Collider::EColliderType::Circle;
+		collider->enabled = true;
+		if (collisionManager) collisionManager->RegisterCollider(collider);
+	}
+}
+
+void Player::ShutdownCollision(CollisionManager* collisionManager) {
+	if (collider) {
+		if (collisionManager) collisionManager->UnregisterCollider(collider);
+		delete collider;
+		collider = nullptr;
 	}
 }
 

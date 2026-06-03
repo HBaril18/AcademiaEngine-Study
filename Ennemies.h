@@ -22,6 +22,10 @@ public:
 
     ~Ennemies();
 
+    // Collision control
+    void InitializeCollision(class CollisionManager* collisionManager);
+    void ShutdownCollision(class CollisionManager* collisionManager);
+
     CollisionManager* collisionManager = nullptr;
     Collider* collider = nullptr;
     olc::vf2d direction;

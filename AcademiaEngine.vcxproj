@@ -181,6 +181,7 @@
     <ClInclude Include="src\Game\ExampleGameObject.h" />
     <ClInclude Include="external\olc\olcPixelGameEngine.h" />
     <ClInclude Include="src\Engine\AcademiaEngine.h" />
+    <ClInclude Include="src\Game\Spawner.h" />
     <ClInclude Include="src\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

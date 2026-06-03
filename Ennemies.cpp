@@ -29,6 +29,31 @@ Ennemies::Ennemies()
 	Health = 50.0f;
 }
 
+void Ennemies::InitializeCollision(CollisionManager* collisionManager)
+{
+	this->collisionManager = collisionManager;
+	if (!collider) {
+		collider = new Collider();
+		collider->owner = this;
+		collider->position = Position;
+		collider->size = Radius;
+		collider->layer = 2; // Enemy layer
+		collider->type = Collider::EColliderType::Circle;
+		collider->enabled = true;
+		if (collisionManager) collisionManager->RegisterCollider(collider);
+	}
+}
+
+void Ennemies::ShutdownCollision(CollisionManager* collisionManager)
+{
+	if (collider) {
+		if (collisionManager) collisionManager->UnregisterCollider(collider);
+		delete collider;
+		collider = nullptr;
+	}
+	this->collisionManager = nullptr;
+}
+
 Ennemies::~Ennemies()
 {
 	if (collisionManager) {

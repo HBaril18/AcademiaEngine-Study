@@ -3,6 +3,10 @@
 #include "Bullet.h"
 #include <deque>
 
+// Forward declaration
+class CollisionManager;
+class Collider;
+
 /*----------------------------------*/
 //                                  //
 // MADE BY HENRICK BARIL 2026-04-09 //
@@ -27,6 +31,13 @@ public:
 	void UpdateBullets(AcademiaEngine& engineContext);
 	void TakeDamage(float damage) { Health = Health - damage; }
 	float GetHealth() const { return Health; }
+
+	// Collision
+	Collider* collider = nullptr;
+
+	// Initialize and shutdown collision for this player using the given manager
+	void InitializeCollision(class CollisionManager* collisionManager);
+	void ShutdownCollision(class CollisionManager* collisionManager);
 
 protected:
     float Radius = 20.0f;

@@ -11,6 +11,14 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
     _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
     _Spawner.SetPosition(olc::vf2d(100.0f, 100.0f));
 
+    // Setup collision manager references
+    _CollisionManager.SetPlayer(&_Player);
+    _CollisionManager.SetEnnemies(&_Spawner.GetEnnemies());
+    _CollisionManager.SetBullets(&_Player.GetBullets());
+
+    // Initialize player collider via Player API
+    _Player.InitializeCollision(&_CollisionManager);
+
     // Setup spawner timer to run every 5 seconds
     auto spawnTask = [this]() {
         _SpawnRequested.store(true);
@@ -50,6 +58,8 @@ void GameManager::Update(float elapsedTime)
     if (_EngineContext->GetMouse(0).bPressed) {
         _Player.SpawnBullet(*_EngineContext);
     }
+
+    _CollisionManager.Update();
 
     /* SPAWNER handled by PeriodicTimer started in Initialize() */
 
@@ -94,4 +104,6 @@ void GameManager::Uninitialize() {
         _SpawnerTimer->stop();
         _SpawnerTimer.reset();
     }
+
+    _Player.ShutdownCollision(&_CollisionManager);
 }

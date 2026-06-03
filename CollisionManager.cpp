@@ -45,8 +45,9 @@ void CollisionManager::Update()
 
 				int a = colliderA->layer;
 				int b = colliderB->layer;
-
+				std::cout << "Checking collision between layer " << a << " and layer " << b << std::endl;
 				if (collisionMatrix[a][b]){
+					std::cout << "Collision detected between layer " << a << " and layer " << b << std::endl;
 					// Collision logic
 					if (colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Circle) {
 						// Circle vs Circle collision logic
@@ -103,3 +104,33 @@ void CollisionManager::Update()
 		}
 	}
 }
+
+/*Pistes principales et actions rapides à tester (court et concret)
+1.	Vérifier que Update est bien appelé
+•	Ajoute un log/breakpoint au tout début de AcademiaEngineOnUserUpdate et au début de GameManagerUpdate pour confirmer que la boucle arrive jusque là.
+2.	Crash / accès mémoire (arrêt prématuré)
+•	Symptôme : programme se ferme/disparaît sans poursuivre.
+•	Cause fréquente : pointeur invalide (collider->owner null ou dangling), accès à player non initialisé, static_cast sur pointeur corrompu.
+•	Test : avant d’utiliser owner ou player, ajoute des guards : if (!colliderA || !colliderB) continue; if (!colliderA->owner || !colliderB->owner) continue; if (!player) continue;
+•	Exécute sous le débogueur (Break on All Exceptions / Access Violation) pour voir la pile.
+3.	Blocage / boucle longue
+•	Symptôme : la frame freeze (ne progresse pas).
+•	Cause : boucle coûteuse (double boucle sur beaucoup d'objets), appel bloquant (mutex, sleep) ou timer mal utilisé.
+•	Test : temporise / mesure temps d'exécution : auto t0 = stdchronohigh_resolution_clocknow(); _CollisionManager.Update(); auto t1 = stdchronohigh_resolution_clocknow(); log durée (t1-t0) pour détecter hotspot.
+4.	Invalidation d'itérateurs (modifs pendant Update)
+•	Symptôme : crash sporadique pendant _CollisionManager.Update.
+•	Cause : Register/Unregister appelés depuis un callback pendant l'itération.
+•	Test : protège Register/Unregister en différant les ajouts/suppressions (pending vectors) ou empêche les callbacks de modifier la collection pendant la passe.
+5.	Early return logique
+•	Symptôme : Update s’exécute mais s’arrête tôt (retours conditionnels).
+•	Test : place des logs/printf à plusieurs points (début, après _CollisionManager.Update, après boucle bullets/ennemies) pour localiser l'arrêt logique.
+6.	Assertions / exceptions C++
+•	Active «Break on C++ exceptions» et regarde la console Output pour exceptions non interceptées.
+Checklist d’actions immédiates (exécuter maintenant)
+•	Met un breakpoint au début de GameManager::Update.
+•	Si breakpoint sauté -> vérifier OnUserUpdate est appelé.
+•	Si breakpoint atteint puis pas plus loin -> placer logs successifs dans Update pour localiser la passerelle qui bloque/crashe.
+•	Lancer en Debug, quand ça plante consulter la call stack.
+Si tu veux, j’ajoute :
+•	des logs temporaires dans GameManagerUpdate et CollisionManagerUpdate,
+•	ou les guards rapides (null checks) dans CollisionManager.Update que je peux appliquer immédiatement. Quelle option ?*/

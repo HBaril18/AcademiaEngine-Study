@@ -14,10 +14,9 @@ void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionMan
 	// set player reference
 	ennemie.SetPlayer(player);
 
-	// set shared collision manager and register collider if available
+	// initialize collision for the enemy using the shared manager
 	if (collisionManager) {
-		ennemie.collisionManager = collisionManager;
-		if (ennemie.collider) collisionManager->RegisterCollider(ennemie.collider);
+		ennemie.InitializeCollision(collisionManager);
 	}
 
 	std::cout << "Ennemie deque" << ennemies.size() << std::endl;
