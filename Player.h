@@ -1,11 +1,12 @@
 #pragma once
 #include "Character.h"
 #include "Bullet.h"
+#include <vector>
 #include <deque>
 
 // Forward declaration
 class CollisionManager;
-class Collider;
+struct Collider;
 
 /*----------------------------------*/
 //                                  //
@@ -25,7 +26,7 @@ public:
 	void AddForce(AcademiaEngine& engine, float force, const std::vector<float>& direction, float elapsedTime);
     olc::vf2d GetCursorPosition(AcademiaEngine& engine) const;
 	olc::vf2d GetPlayerDirection(AcademiaEngine& engine) const;
-    void SpawnBullet(AcademiaEngine& engine);
+	void SpawnBullet(AcademiaEngine& engine);
 	std::deque<Bullet>& GetBullets() { return bullets; }
 	void Update(AcademiaEngine& engine, float elapsedTime);
 	void UpdateBullets(AcademiaEngine& engineContext);
@@ -38,6 +39,8 @@ public:
 	// Initialize and shutdown collision for this player using the given manager
 	void InitializeCollision(class CollisionManager* collisionManager);
 	void ShutdownCollision(class CollisionManager* collisionManager);
+	// stored pointer to the collision manager
+	CollisionManager* collisionManager = nullptr;
 
 protected:
     float Radius = 20.0f;

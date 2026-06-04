@@ -5,10 +5,13 @@ void PeriodicTimer::start() {
     if (running_) return; // Prevent double start
     running_ = true;
     worker_ = std::thread([this]() {
+        // Wait the first interval before invoking the task
+        auto next = std::chrono::steady_clock::now() + interval_;
         while (running_) {
-            auto next = std::chrono::steady_clock::now() + interval_;
-            task_();
             std::this_thread::sleep_until(next);
+            if (!running_) break;
+            task_();
+            next += interval_;
         }
     });
 }

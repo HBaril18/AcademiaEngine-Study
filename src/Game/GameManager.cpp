@@ -2,6 +2,8 @@
 #include "../../external/olc/olcPixelGameEngine.h"
 #include "../Engine/AcademiaEngine.h"
 #include <chrono>
+#include <memory>
+#include <mutex>
 
 void GameManager::Initialize(AcademiaEngine* engineContext)
 {
@@ -9,23 +11,50 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
 
 #ifdef ACADEMIA_EXAMPLE
     _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
-    _Spawner.SetPosition(olc::vf2d(100.0f, 100.0f));
-
     // Setup collision manager references
     _CollisionManager.SetPlayer(&_Player);
-    _CollisionManager.SetEnnemies(&_Spawner.GetEnnemies());
-    _CollisionManager.SetBullets(&_Player.GetBullets());
 
     // Initialize player collider via Player API
     _Player.InitializeCollision(&_CollisionManager);
 
-    // Setup spawner timer to run every 5 seconds
-    auto spawnTask = [this]() {
-        _SpawnRequested.store(true);
-    };
+    // Create multiple spawners
+    const int spawnerCount = 2; // configurable number of spawners
+    _Spawners.reserve(spawnerCount);
+    // Note: reserve() only increases capacity, not size().
+    // Do not access _Spawners by index before push_back; set positions on the spawner
+    // object before moving it into the vector.
+    _SpawnerTimers.reserve(spawnerCount);
+    _SpawnRequested.resize(spawnerCount);
 
-    _SpawnerTimer = std::make_unique<PeriodicTimer>(std::chrono::seconds(5), spawnTask);
-    _SpawnerTimer->start();
+    for (int i = 0; i < spawnerCount; ++i) {
+        auto sp = std::make_unique<Spawner>();
+        // position spawners: start them off-screen depending on index, or default positions
+        if (i == 0) {
+            sp->SetPosition(olc::vf2d(engineContext->ScreenWidth() + 100.0f, engineContext->ScreenHeight() + 100.0f));
+        } else if (i == 1) {
+            sp->SetPosition(olc::vf2d(-(engineContext->ScreenWidth()) - 100.0f, engineContext->ScreenHeight() + 100.0f));
+        } else {
+            sp->SetPosition(olc::vf2d(100.0f + i * 80.0f, 100.0f));
+        }
+        sp->SetCollisionManager(&_CollisionManager);
+
+        // store spawner
+        _Spawners.push_back(std::move(sp));
+
+        // prepare atomic flag default false (store via unique_ptr wrapper)
+        _SpawnRequested[i] = std::make_unique<std::atomic<bool>>(false);
+
+        // create a timer per spawner (stagger intervals slightly)
+        auto spawnTask = [this, i]() {
+            if (_SpawnRequested[i]) _SpawnRequested[i]->store(true);
+        };
+        auto interval = std::chrono::seconds(5 + i); // slightly different interval
+        _SpawnerTimers.push_back(std::make_unique<PeriodicTimer>(interval, spawnTask));
+        _SpawnerTimers.back()->start();
+    }
+
+    // CollisionManager can still infer ennemies from registered colliders, so we don't need to pass containers explicitly
+    _CollisionManager.SetBullets(&_Player.GetBullets());
 #endif
 }
 
@@ -63,9 +92,12 @@ void GameManager::Update(float elapsedTime)
 
     /* SPAWNER handled by PeriodicTimer started in Initialize() */
 
-    // Process spawn requests signalled by the timer
-    if (_SpawnRequested.exchange(false)) {
-        _Spawner.SpawnEnnemies(*_EngineContext, &_Player, &_CollisionManager);
+    // Process spawn requests signalled by timers for each spawner
+    for (size_t i = 0; i < _Spawners.size(); ++i) {
+        if (_SpawnRequested[i] && _SpawnRequested[i]->exchange(false)) {
+            // spawn on main thread to keep CollisionManager usage single-threaded
+            _Spawners[i]->SpawnEnnemies(*_EngineContext, &_Player, &_CollisionManager);
+        }
     }
 
     // Normalize diagonal movement
@@ -77,33 +109,44 @@ void GameManager::Update(float elapsedTime)
     std::vector<float> direction = { x, y };
 
 #ifdef ACADEMIA_EXAMPLE
-	std::deque<Bullet>& bullets = _Player.GetBullets();
+    auto& bullets = _Player.GetBullets();
     for (auto& bullet : bullets) {
         bullet.Update(*_EngineContext, elapsedTime);
         bullet.Draw(*_EngineContext);
     }
 
-    std::deque<Ennemies>& enemys = _Spawner.GetEnnemies();
-    for (auto& enemy : enemys)
-    {
-        enemy.Update(*_EngineContext, elapsedTime);
-        enemy.Draw(*_EngineContext);
+    // iterate enemies for each spawner (each spawner protects its own container)
+    for (auto& sp : _Spawners) {
+        std::lock_guard<std::mutex> lk(sp->GetEnnemiesMutex());
+        auto& enemys = sp->GetEnnemies();
+        for (auto& enemyPtr : enemys)
+        {
+            auto& enemy = *enemyPtr;
+            enemy.Update(*_EngineContext, elapsedTime);
+            enemy.Draw(*_EngineContext);
+        }
+        Ennemies::RemoveEnnemie(enemys);
     }
-    _Ennemies.RemoveEnnemie(enemys);
-    
+
     _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
     _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     _Player.Update(*_EngineContext, elapsedTime);
     _Player.Draw(*_EngineContext);
+
+    // CollisionManager continues to infer enemies via registered colliders; update bullets binding
+    _CollisionManager.SetBullets(&_Player.GetBullets());
 #endif
 }
 
 void GameManager::Uninitialize() {
     //detruit les new et pointeur que j'ai cr�er
-    if (_SpawnerTimer) {
-        _SpawnerTimer->stop();
-        _SpawnerTimer.reset();
+    // stop and clear all spawner timers
+    for (auto& t : _SpawnerTimers) {
+        if (t) {
+            t->stop();
+        }
     }
+    _SpawnerTimers.clear();
 
     _Player.ShutdownCollision(&_CollisionManager);
 }

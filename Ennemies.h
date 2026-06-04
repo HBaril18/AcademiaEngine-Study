@@ -22,12 +22,17 @@ public:
 
     ~Ennemies();
 
+    Ennemies(const Ennemies&) = delete;
+    Ennemies& operator=(const Ennemies&) = delete;
+    Ennemies(Ennemies&&) noexcept = default;
+    Ennemies& operator=(Ennemies&&) noexcept = default;
+
     // Collision control
     void InitializeCollision(class CollisionManager* collisionManager);
     void ShutdownCollision(class CollisionManager* collisionManager);
 
     CollisionManager* collisionManager = nullptr;
-    Collider* collider = nullptr;
+    std::unique_ptr<Collider> collider = nullptr;
     olc::vf2d direction;
 
     void Draw(AcademiaEngine& engine) override;
@@ -35,13 +40,13 @@ public:
     void Update(AcademiaEngine& engine, float elapsedTime);
 
     void TakeDamage(float damage);
-    void RemoveEnnemie(std::deque<Ennemies>& ennemies);
+    static void RemoveEnnemie(std::deque<std::unique_ptr<Ennemies>>& ennemies);
 
     const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine) const;
     void GetDirection(AcademiaEngine& engine, olc::vf2d playerPosition);
 
     const Player* GetPlayer() const { return player; }
-    void SetPlayer(const Player* p){ player = p; }
+    void SetPlayer(const Player* p);
 
     float GetRadius() const { return Radius; }
 

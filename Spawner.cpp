@@ -1,4 +1,9 @@
 #include "Spawner.h"
+#include "Ennemies.h"
+#include <memory>
+#include <iostream>
+#include <mutex>
+// ensure <memory> is available for std::unique_ptr usage
 
 /*----------------------------------*/
 //                                  //
@@ -6,18 +11,15 @@
 //                                  //
 /*----------------------------------*/
 
-void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionManager* collisionManager) {
-	// Construct enemy in-place in the deque using current Position and default radius
-	ennemies.emplace_back(Position, 15.0f);
-	Ennemies& ennemie = ennemies.back();
-
-	// set player reference
-	ennemie.SetPlayer(player);
-
-	// initialize collision for the enemy using the shared manager
-	if (collisionManager) {
-		ennemie.InitializeCollision(collisionManager);
+void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionManager* cm) {
+	// Spawn at the spawner position and associate the player pointer
+	auto enemy = std::make_unique<Ennemies>(Position, 15.0f);
+	if (player) enemy->SetPlayer(player);
+	enemy->InitializeCollision(cm);
+	// Lock to avoid concurrent modification of the deque from other threads
+	{
+		std::lock_guard<std::mutex> lk(ennemies_mutex);
+		ennemies_container.push_back(std::move(enemy));
 	}
-
-	std::cout << "Ennemie deque" << ennemies.size() << std::endl;
+	std::cout << "Spawned enemy at (" << Position.x << "," << Position.y << ") player ptr=" << reinterpret_cast<const void*>(player) << "\n";
 }
