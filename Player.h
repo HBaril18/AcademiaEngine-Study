@@ -19,7 +19,7 @@ class Player : public Character
 {
 public:
 	float damageCooldown = 0.0f;     // temps restant
-	float damageDelay = 1.0f;        // délai entre dégâts (en secondes)
+	float damageDelay = 0.65f;        // délai entre dégâts (en secondes)
 
     void Draw(AcademiaEngine& engine) override;
 	void DrawCursor(AcademiaEngine& engine, olc::vf2d cursorWorldPos);
@@ -47,6 +47,6 @@ protected:
     olc::Pixel Color = olc::WHITE;
     std::deque<Bullet> bullets;
 	float Health = 100.0f;
-	float Damage = 25.0f;
+	float Damage = 10.0f;
 	bool IsAlive() const { return Health > 0.0f; }
 };

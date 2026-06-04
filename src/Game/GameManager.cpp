@@ -4,10 +4,16 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <random>
 
 void GameManager::Initialize(AcademiaEngine* engineContext)
 {
     _EngineContext = engineContext;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distrib(1, 20);
+    int random_num = distrib(gen);
 
 #ifdef ACADEMIA_EXAMPLE
     _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
@@ -30,9 +36,9 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
         auto sp = std::make_unique<Spawner>();
         // position spawners: start them off-screen depending on index, or default positions
         if (i == 0) {
-            sp->SetPosition(olc::vf2d(engineContext->ScreenWidth() + 100.0f, engineContext->ScreenHeight() + 100.0f));
+            sp->SetPosition(olc::vf2d(engineContext->ScreenWidth(), engineContext->ScreenHeight()));
         } else if (i == 1) {
-            sp->SetPosition(olc::vf2d(-(engineContext->ScreenWidth()) - 100.0f, engineContext->ScreenHeight() + 100.0f));
+            sp->SetPosition(olc::vf2d(-(engineContext->ScreenWidth()), engineContext->ScreenHeight()));
         } else {
             sp->SetPosition(olc::vf2d(100.0f + i * 80.0f, 100.0f));
         }
@@ -48,7 +54,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
         auto spawnTask = [this, i]() {
             if (_SpawnRequested[i]) _SpawnRequested[i]->store(true);
         };
-        auto interval = std::chrono::seconds(5 + i); // slightly different interval
+        auto interval = std::chrono::seconds(5 + random_num); // slightly different interval
         _SpawnerTimers.push_back(std::make_unique<PeriodicTimer>(interval, spawnTask));
         _SpawnerTimers.back()->start();
     }
@@ -91,7 +97,6 @@ void GameManager::Update(float elapsedTime)
     _CollisionManager.Update();
 
     /* SPAWNER handled by PeriodicTimer started in Initialize() */
-
     // Process spawn requests signalled by timers for each spawner
     for (size_t i = 0; i < _Spawners.size(); ++i) {
         if (_SpawnRequested[i] && _SpawnRequested[i]->exchange(false)) {

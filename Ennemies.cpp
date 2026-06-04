@@ -111,9 +111,15 @@ void Ennemies::AddForce(AcademiaEngine& engine, float force, olc::vf2d direction
 }
 
 void Ennemies::TakeDamage(float damage) {
+    float before = Health;
     Health -= damage;
-    if (Health < 0) {
-        Health = 0;
+    std::cout << "Ennemies::TakeDamage ptr=" << reinterpret_cast<void*>(this)
+        << " damage=" << damage << " before=" << before << " after=" << Health << "\n";
+    if (Health <= 0.0f) {
+        Health = 0.0f;
+        // disable collider immediately to avoid further collision processing
+        if (collider) collider->enabled = false;
+        std::cout << "Ennemies died ptr=" << reinterpret_cast<void*>(this) << "\n";
     }
 }
 

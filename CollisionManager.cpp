@@ -24,6 +24,8 @@ void CollisionManager::RemoveBullet(Bullet* b)
 		if (!b->collider->enabled) return; // already scheduled/disabled
 		b->collider->enabled = false;
 	}
+	// mark for removal immediately to help other systems detect it's gone
+	b->markedForRemoval = true;
 	pendingBulletRemovals.push_back(b);
 }
 
@@ -106,7 +108,7 @@ void CollisionManager::Update()
 
 			if (colliderA->enabled && colliderB->enabled) {
 				const bool collisionMatrix[4][4] = {
-					// 0    1      2      3
+					//0     1      2      3
 					{false, false, false, false}, // 0 unused
 					{false, false, true,  false}, // 1 Player
 					{false, true,  false, true }, // 2 Enemy
@@ -137,69 +139,67 @@ void CollisionManager::Update()
 									player->damageCooldown = player->damageDelay;
 								}
 							}
-							// Enemy-Bullet
+							// Enemy-Bullet: handle both orderings, apply damage once and schedule bullet removal
 							else if ((a == 2 && b == 3) || (a == 3 && b == 2)) {
-								Bullet* victim = nullptr;
+								Ennemies* enemy = nullptr;
+								Bullet* bullet = nullptr;
 								if (a == 2) {
-									auto* e = static_cast<Ennemies*>(colliderA->owner);
-									if (e) {
-										e->TakeDamage(25.0f);
-										// bullet is colliderB
-										victim = static_cast<Bullet*>(colliderB->owner);
-									}
-									else {
-										auto* e = static_cast<Ennemies*>(colliderB->owner);
-										if (e) {
-											e->TakeDamage(25.0f);
-											// bullet is colliderA
-											victim = static_cast<Bullet*>(colliderA->owner);
-										}
-										if (victim) RemoveBullet(victim);
-										// Optionally, remove or mark bullet for deletion here
-									}
-									// Other collision responses can be added here
+									enemy = static_cast<Ennemies*>(colliderA->owner);
+									bullet = static_cast<Bullet*>(colliderB->owner);
+								} else {
+									enemy = static_cast<Ennemies*>(colliderB->owner);
+									bullet = static_cast<Bullet*>(colliderA->owner);
 								}
-							}
-							if (colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Box) {
-								// Box vs Box collision logic
-								olc::vf2d delta = colliderB->position - colliderA->position;
-								if (std::abs(delta.x) < (colliderA->size + colliderB->size) &&
-									std::abs(delta.y) < (colliderA->size + colliderB->size)) {
-									// Handle collision response here
+								if (enemy) {
+									enemy->TakeDamage(10.0f);
+								}
+								if (bullet) {
+									RemoveBullet(bullet);
+			}
+		}
 
-								}
-							}
-							if ((colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Box) ||
-								(colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Circle)) {
-								// Circle vs Box collision logic
-								Collider* circleCollider = (colliderA->type == Collider::EColliderType::Circle) ? colliderA : colliderB;
-								Collider* boxCollider = (colliderA->type == Collider::EColliderType::Box) ? colliderA : colliderB;
-								olc::vf2d delta = circleCollider->position - boxCollider->position;
-								olc::vf2d halfSize = { boxCollider->size, boxCollider->size };
-								olc::vf2d closestPoint = delta.clamp(-halfSize, halfSize); //Only for square box, for rectangle we would need to have different halfSize for x and y
-								olc::vf2d difference = delta - closestPoint;
-								float distanceSquared = difference.mag2();
-								if (distanceSquared < circleCollider->size * circleCollider->size) {
-									// Handle collision response here
-
-								}
-							}
-						}
-					}
-				}
-				// apply pending bullet removals after collision pass
-				if (!pendingBulletRemovals.empty()) {
-					for (auto* b : pendingBulletRemovals) {
-						if (!b) continue;
-						if (b->collider) {
-							UnregisterCollider(b->collider);
-							// mark for removal on the bullet itself to let owner erase safely
-							b->markedForRemoval = true;
-						}
-					}
-					pendingBulletRemovals.clear();
+		// apply pending bullet removals after collision pass (safe: not modifying colliders during iteration)
+		if (!pendingBulletRemovals.empty()) {
+			for (auto* b : pendingBulletRemovals) {
+				if (!b) continue;
+				if (b->collider) {
+					UnregisterCollider(b->collider);
+					// mark for removal on the bullet itself to let owner erase safely
+					b->markedForRemoval = true;
 				}
 			}
+			pendingBulletRemovals.clear();
+		}
+	}
+
+						if (colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Box) {
+							// Box vs Box collision logic
+							olc::vf2d delta = colliderB->position - colliderA->position;
+							if (std::abs(delta.x) < (colliderA->size + colliderB->size) &&
+								std::abs(delta.y) < (colliderA->size + colliderB->size)) {
+								// Handle collision response here
+
+							}
+						}
+						if ((colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Box) ||
+							(colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Circle)) {
+							// Circle vs Box collision logic
+							Collider* circleCollider = (colliderA->type == Collider::EColliderType::Circle) ? colliderA : colliderB;
+							Collider* boxCollider = (colliderA->type == Collider::EColliderType::Box) ? colliderA : colliderB;
+							olc::vf2d delta = circleCollider->position - boxCollider->position;
+							olc::vf2d halfSize = { boxCollider->size, boxCollider->size };
+							olc::vf2d closestPoint = delta.clamp(-halfSize, halfSize); //Only for square box, for rectangle we would need to have different halfSize for x and y
+							olc::vf2d difference = delta - closestPoint;
+							float distanceSquared = difference.mag2();
+							if (distanceSquared < circleCollider->size * circleCollider->size) {
+								// Handle collision response here
+
+							}
+						}
+					}
+				}
+			}
+
 		}
 	}
 }
