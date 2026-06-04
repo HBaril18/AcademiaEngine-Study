@@ -12,7 +12,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> distrib(1, 20);
+    std::uniform_int_distribution<int> distrib(1, 10);
     int random_num = distrib(gen);
 
 #ifdef ACADEMIA_EXAMPLE
@@ -54,7 +54,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
         auto spawnTask = [this, i]() {
             if (_SpawnRequested[i]) _SpawnRequested[i]->store(true);
         };
-        auto interval = std::chrono::seconds(5 + random_num); // slightly different interval
+        auto interval = std::chrono::seconds(1 + random_num); // slightly different interval
         _SpawnerTimers.push_back(std::make_unique<PeriodicTimer>(interval, spawnTask));
         _SpawnerTimers.back()->start();
     }
@@ -66,6 +66,8 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
 
 void GameManager::Update(float elapsedTime)
 {
+	std::cout << "FPS: " << _EngineContext->GetFPS() << std::endl;
+    _EngineContext->DrawString(10, 10, "FPS : " + std::to_string(_EngineContext->GetFPS()));
     constexpr olc::Key rightKey = olc::Key::D;
     constexpr olc::Key leftKey = olc::Key::A;
     constexpr olc::Key upKey = olc::Key::W;
@@ -79,7 +81,7 @@ void GameManager::Update(float elapsedTime)
     const olc::HWButton jumpButton = _EngineContext->GetKey(spaceKey);
 	const olc::HWButton sneakButton = _EngineContext->GetKey(shiftKey);
     
-    // Gameplay code
+    //Gameplay code
     //Movement handle
     float x = 0.0f;
     float y = 0.0f;
