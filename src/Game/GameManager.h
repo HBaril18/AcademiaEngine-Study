@@ -15,6 +15,7 @@
 #include "Spawner.h"
 #include "../../CollisionManager.h"
 #endif
+#include "external/olc/olcPixelGameEngine.h"
 
 class AcademiaEngine;
 
@@ -26,6 +27,14 @@ public:
     void Initialize(AcademiaEngine* engineContext);
     void Update(float elapsedTime);
     void Uninitialize();
+    void DrawUI();
+    ~GameManager();
+
+    //Color used for UI
+    olc::Pixel bgColorNavyBlue = olc::Pixel(18, 52, 74);
+    olc::Pixel mainUIOrange = olc::Pixel(255, 140, 66);
+    olc::Pixel secondaryUICyan = olc::Pixel(46, 230, 214);
+    olc::Pixel alertUIYellow = olc::Pixel(255, 217, 61);
 
 private:
 

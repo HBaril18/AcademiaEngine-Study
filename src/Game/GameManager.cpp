@@ -66,8 +66,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
 
 void GameManager::Update(float elapsedTime)
 {
-	std::cout << "FPS: " << _EngineContext->GetFPS() << std::endl;
-    _EngineContext->DrawString(10, 10, "FPS : " + std::to_string(_EngineContext->GetFPS()));
+
     constexpr olc::Key rightKey = olc::Key::D;
     constexpr olc::Key leftKey = olc::Key::A;
     constexpr olc::Key upKey = olc::Key::W;
@@ -142,6 +141,18 @@ void GameManager::Update(float elapsedTime)
 
     // CollisionManager continues to infer enemies via registered colliders; update bullets binding
     _CollisionManager.SetBullets(&_Player.GetBullets());
+
+    // UI code
+    // Draw Player health bar
+    _Player.GetPosition();
+    olc::vi2d healthBarPos = _EngineContext->ConvertWorldPositionToPixels(_Player.GetPosition()) + olc::vi2d(-20, -30);
+    _EngineContext->FillRect(healthBarPos, olc::vi2d(40, 5), olc::WHITE);
+    if (_Player.GetHealth() > 0) {
+        int healthWidth = static_cast<int>(40 * (_Player.GetHealth() / 100.0f));
+        _EngineContext->FillRect(healthBarPos, olc::vi2d(healthWidth, 5), olc::GREEN);
+    }
+    DrawUI();
+    _EngineContext->DrawString(10, 10, "FPS : " + std::to_string(_EngineContext->GetFPS()), secondaryUICyan);
 #endif
 }
 
@@ -156,4 +167,15 @@ void GameManager::Uninitialize() {
     _SpawnerTimers.clear();
 
     _Player.ShutdownCollision(&_CollisionManager);
+}
+
+GameManager::~GameManager()
+{
+	Uninitialize();
+}
+
+void GameManager::DrawUI() {
+	// Draw a simple white bar at the top of the screen for UI background
+    _EngineContext->FillRect(0, 0, 1920, 35, bgColorNavyBlue);
+   
 }

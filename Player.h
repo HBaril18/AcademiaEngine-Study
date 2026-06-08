@@ -44,7 +44,7 @@ public:
 
 protected:
     float Radius = 20.0f;
-    olc::Pixel Color = olc::WHITE;
+	olc::Pixel Color = olc::Pixel(155, 92, 255);
     std::deque<Bullet> bullets;
 	float Health = 100.0f;
 	float Damage = 10.0f;

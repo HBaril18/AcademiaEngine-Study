@@ -79,6 +79,14 @@ void Ennemies::Draw(AcademiaEngine& engine) {
     olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
     // Debug log to ensure draw is called and positions are sane
     engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color);
+
+	// Draw Healh bar above the enemy
+	engine.FillRect(pixelPos + olc::vi2d(-20, -30), olc::vi2d(40, 5), olc::WHITE);
+    if (GetHealth() > 0) {
+        int healthWidth = static_cast<int>(40 * (GetHealth() / 50.0f));
+		olc::Pixel healthColor = (255, 59, 59);
+        engine.FillRect(pixelPos + olc::vi2d(-20, -30), olc::vi2d(healthWidth, 5), healthColor);
+    }
 }
 
 const olc::vf2d& Ennemies::GetPlayerPosition(AcademiaEngine& engine) const {
