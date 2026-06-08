@@ -9,7 +9,6 @@
 /*----------------------------------*/
 
 void Player::Update(AcademiaEngine& engine, float elapsedTime) {
-    UpdateBullets(engine);
     if (damageCooldown > 0.0f) {
         damageCooldown -= elapsedTime;
     }
@@ -63,6 +62,8 @@ void Player::SpawnBullet(AcademiaEngine& engine) {
     bullets.emplace_back();
     Bullet& bullet = bullets.back();
     bullet.SetPosition(Position); // Set the bullet's initial position to the player's position
+    // initialize previous position to same as spawn to avoid invalid sweep tests on first update
+    bullet.SetPreviousPosition(Position);
 
     // Initialize bullet collision if player has collision manager set
     if (collisionManager) {

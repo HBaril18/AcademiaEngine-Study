@@ -93,8 +93,9 @@ void CollisionManager::UnregisterCollider(Collider* collider)
 void CollisionManager::Update()
 {
 	// Implementation for updating collisions
-	for (int i = 0; i < static_cast<int>(colliders.size()); ++i) {
-		for (int j = i + 1; j < static_cast<int>(colliders.size()); ++j) {
+	int collCount = static_cast<int>(colliders.size());
+	for (int i = 0; i < collCount; ++i) {
+		for (int j = i + 1; j < collCount; ++j) {
 			Collider* colliderA = colliders[i];
 			Collider* colliderB = colliders[j];
 			if (!colliderA || !colliderB) continue;
@@ -106,100 +107,118 @@ void CollisionManager::Update()
 			// layer bounds check
 			if (colliderA->layer < 0 || colliderA->layer >= 4 || colliderB->layer < 0 || colliderB->layer >= 4) continue;
 
-			if (colliderA->enabled && colliderB->enabled) {
-				const bool collisionMatrix[4][4] = {
-					//0     1      2      3
-					{false, false, false, false}, // 0 unused
-					{false, false, true,  false}, // 1 Player
-					{false, true,  false, true }, // 2 Enemy
-					{false, false, true,  false}  // 3 Bullet
-				};
+			const bool collisionMatrix[4][4] = {
+				//0     1      2      3
+				{false, false, false, false}, // 0 unused
+				{false, false, true,  false}, // 1 Player
+				{false, true,  false, true }, // 2 Enemy
+				{false, false, true,  false}  // 3 Bullet
+			};
 
-				int a = colliderA->layer;
-				int b = colliderB->layer;
-				//std::cout << "Checking collision between layer " << a << " and layer " << b << std::endl;
-				//std::cout << "collision is true ? " << collisionMatrix[a][b] << std::endl;
-				if (collisionMatrix[a][b]) {
-					// Collision logic
-					if (colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Circle) {
-						// Circle vs Circle collision logic
-						olc::vf2d delta = colliderB->position - colliderA->position;
-						float distanceSquared = delta.mag2();
-						float radiusSum = colliderA->size + colliderB->size;
-						// debug
-						// std::cout << "Circle-Circle pair: a="<<a<<" b="<<b<<" dist2="<<distanceSquared<<" rsum2="<<radiusSum*radiusSum<<"\n";
-						if (distanceSquared < radiusSum * radiusSum) {
-							// Handle collision response here
-							// Determine pair by layer a and b
-							// Player-Enemy
-							if ((a == 1 && b == 2) || (a == 2 && b == 1)) {
-								// damage the player
-								if (player && player->damageCooldown <= 0.0f) {
-									player->TakeDamage(10.0f);
-									player->damageCooldown = player->damageDelay;
+			int a = colliderA->layer;
+			int b = colliderB->layer;
+			if (!collisionMatrix[a][b]) continue;
+
+			// Circle vs Circle collision logic
+			if (colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Circle) {
+				olc::vf2d delta = colliderB->position - colliderA->position;
+				float distanceSquared = delta.mag2();
+				float radiusSum = colliderA->size + colliderB->size;
+				// Standard overlap test
+				bool overlap = (distanceSquared < radiusSum * radiusSum);
+				// Additional sweep/tunneling test for bullet vs enemy: perform segment-circle test
+				if (!overlap) {
+					// Check for enemy-bullet pair and attempt sweep test
+					bool isEnemyBullet = ((a == 2 && b == 3) || (a == 3 && b == 2));
+					if (isEnemyBullet) {
+						Ennemies* enemy = nullptr;
+						Bullet* bullet = nullptr;
+						if (a == 2) { enemy = static_cast<Ennemies*>(colliderA->owner); bullet = static_cast<Bullet*>(colliderB->owner); }
+						else { enemy = static_cast<Ennemies*>(colliderB->owner); bullet = static_cast<Bullet*>(colliderA->owner); }
+						if (enemy && bullet) {
+							// segment from previousPosition to current Position
+							olc::vf2d p1 = bullet->GetPreviousPosition();
+							olc::vf2d p2 = bullet->GetPosition();
+							olc::vf2d c = enemy->GetPosition();
+							olc::vf2d d = p2 - p1;
+							float len2 = d.mag2();
+							if (len2 > 0.0f) {
+								float t = ((c - p1).dot(d)) / len2;
+								t = std::fmax(0.0f, std::fmin(1.0f, t));
+								olc::vf2d closest = p1 + d * t;
+								float dist2 = (closest - c).mag2();
+								if (dist2 < enemy->GetRadius() * enemy->GetRadius()) {
+									overlap = true;
 								}
-							}
-							// Enemy-Bullet: handle both orderings, apply damage once and schedule bullet removal
-							else if ((a == 2 && b == 3) || (a == 3 && b == 2)) {
-								Ennemies* enemy = nullptr;
-								Bullet* bullet = nullptr;
-								if (a == 2) {
-									enemy = static_cast<Ennemies*>(colliderA->owner);
-									bullet = static_cast<Bullet*>(colliderB->owner);
-								} else {
-									enemy = static_cast<Ennemies*>(colliderB->owner);
-									bullet = static_cast<Bullet*>(colliderA->owner);
-								}
-								if (enemy) {
-									enemy->TakeDamage(10.0f);
-								}
-								if (bullet) {
-									RemoveBullet(bullet);
-			}
-		}
-
-		// apply pending bullet removals after collision pass (safe: not modifying colliders during iteration)
-		if (!pendingBulletRemovals.empty()) {
-			for (auto* b : pendingBulletRemovals) {
-				if (!b) continue;
-				if (b->collider) {
-					UnregisterCollider(b->collider);
-					// mark for removal on the bullet itself to let owner erase safely
-					b->markedForRemoval = true;
-				}
-			}
-			pendingBulletRemovals.clear();
-		}
-	}
-
-						if (colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Box) {
-							// Box vs Box collision logic
-							olc::vf2d delta = colliderB->position - colliderA->position;
-							if (std::abs(delta.x) < (colliderA->size + colliderB->size) &&
-								std::abs(delta.y) < (colliderA->size + colliderB->size)) {
-								// Handle collision response here
-
 							}
 						}
-						if ((colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Box) ||
-							(colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Circle)) {
-							// Circle vs Box collision logic
-							Collider* circleCollider = (colliderA->type == Collider::EColliderType::Circle) ? colliderA : colliderB;
-							Collider* boxCollider = (colliderA->type == Collider::EColliderType::Box) ? colliderA : colliderB;
-							olc::vf2d delta = circleCollider->position - boxCollider->position;
-							olc::vf2d halfSize = { boxCollider->size, boxCollider->size };
-							olc::vf2d closestPoint = delta.clamp(-halfSize, halfSize); //Only for square box, for rectangle we would need to have different halfSize for x and y
-							olc::vf2d difference = delta - closestPoint;
-							float distanceSquared = difference.mag2();
-							if (distanceSquared < circleCollider->size * circleCollider->size) {
-								// Handle collision response here
-
-							}
+					}
+				}
+				if (overlap) {
+					// Player-Enemy
+					if ((a == 1 && b == 2) || (a == 2 && b == 1)) {
+						if (player && player->damageCooldown <= 0.0f) {
+							player->TakeDamage(10.0f);
+							player->damageCooldown = player->damageDelay;
+						}
+					}
+					// Enemy-Bullet
+					else if ((a == 2 && b == 3) || (a == 3 && b == 2)) {
+						Ennemies* enemy = nullptr;
+						Bullet* bullet = nullptr;
+						if (a == 2) {
+							enemy = static_cast<Ennemies*>(colliderA->owner);
+							bullet = static_cast<Bullet*>(colliderB->owner);
+						} else {
+							enemy = static_cast<Ennemies*>(colliderB->owner);
+							bullet = static_cast<Bullet*>(colliderA->owner);
+						}
+						if (enemy) {
+							enemy->TakeDamage(10.0f);
+						}
+						if (bullet) {
+							RemoveBullet(bullet);
 						}
 					}
 				}
 			}
 
+			// Box vs Box
+			if (colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Box) {
+				olc::vf2d delta = colliderB->position - colliderA->position;
+				if (std::abs(delta.x) < (colliderA->size + colliderB->size) &&
+					std::abs(delta.y) < (colliderA->size + colliderB->size)) {
+					// Handle collision response here if needed
+				}
+			}
+
+			// Circle vs Box
+			if ((colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Box) ||
+				(colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Circle)) {
+				Collider* circleCollider = (colliderA->type == Collider::EColliderType::Circle) ? colliderA : colliderB;
+				Collider* boxCollider = (colliderA->type == Collider::EColliderType::Box) ? colliderA : colliderB;
+				olc::vf2d delta = circleCollider->position - boxCollider->position;
+				olc::vf2d halfSize = { boxCollider->size, boxCollider->size };
+				olc::vf2d closestPoint = delta.clamp(-halfSize, halfSize);
+				olc::vf2d difference = delta - closestPoint;
+				float distanceSquared = difference.mag2();
+				if (distanceSquared < circleCollider->size * circleCollider->size) {
+					// Handle collision response here if needed
+				}
+			}
 		}
+	}
+
+	// apply pending bullet removals after collision pass (safe: not modifying colliders during iteration)
+	if (!pendingBulletRemovals.empty()) {
+		for (auto* b : pendingBulletRemovals) {
+			if (!b) continue;
+			if (b->collider) {
+				UnregisterCollider(b->collider);
+				// mark for removal on the bullet itself to let owner erase safely
+				b->markedForRemoval = true;
+			}
+		}
+		pendingBulletRemovals.clear();
 	}
 }

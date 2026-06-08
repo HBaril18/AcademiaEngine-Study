@@ -27,10 +27,16 @@ public:
     void SetDirection(const olc::vf2d& dir);
 	void Update(AcademiaEngine& engine, float elapsedTime) override;
     void Draw(AcademiaEngine& engine) override;
+    // previous position accessor for sweep tests
+    void SetPreviousPosition(const olc::vf2d& p) { previousPosition = p; }
+    olc::vf2d GetPreviousPosition() const { return previousPosition; }
+    float GetRadius() const { return radius; }
 
 private:
     olc::vf2d direction;
-    olc::Pixel Color = olc::DARK_YELLOW;
+    // store previous position to allow sweep tests (prevent tunneling)
+    olc::vf2d previousPosition;
+    olc::Pixel Color = olc::Pixel(255, 157, 59);
     float speed = 1200.0f;
 	float radius = 5.0f;
 };

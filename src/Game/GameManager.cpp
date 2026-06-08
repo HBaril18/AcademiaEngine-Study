@@ -95,14 +95,14 @@ void GameManager::Update(float elapsedTime)
         _Player.SpawnBullet(*_EngineContext);
     }
 
-    _CollisionManager.Update();
-
     /* SPAWNER handled by PeriodicTimer started in Initialize() */
-    // Process spawn requests signalled by timers for each spawner
-    for (size_t i = 0; i < _Spawners.size(); ++i) {
-        if (_SpawnRequested[i] && _SpawnRequested[i]->exchange(false)) {
-            // spawn on main thread to keep CollisionManager usage single-threaded
-            _Spawners[i]->SpawnEnnemies(*_EngineContext, &_Player, &_CollisionManager);
+    // Process spawn requests signalled by timers for each spawner (skip if paused)
+    if (!_SpawnersPaused) {
+        for (size_t i = 0; i < _Spawners.size(); ++i) {
+            if (_SpawnRequested[i] && _SpawnRequested[i]->exchange(false)) {
+                // spawn on main thread to keep CollisionManager usage single-threaded
+                _Spawners[i]->SpawnEnnemies(*_EngineContext, &_Player, &_CollisionManager);
+            }
         }
     }
 
@@ -139,8 +139,21 @@ void GameManager::Update(float elapsedTime)
     _Player.Update(*_EngineContext, elapsedTime);
     _Player.Draw(*_EngineContext);
 
-    // CollisionManager continues to infer enemies via registered colliders; update bullets binding
-    _CollisionManager.SetBullets(&_Player.GetBullets());
+    // Now that bullets and enemies have moved this frame, run collision detection
+    // Rebind bullet collider owners to current addresses in the deque to avoid dangling pointers
+    auto& bulletsRef = _Player.GetBullets();
+    for (auto& b : bulletsRef) {
+        if (b.collider) {
+            b.collider->owner = &b;
+            b.collider->position = b.GetPosition();
+            b.collider->size = b.GetRadius();
+        }
+    }
+    _CollisionManager.SetBullets(&bulletsRef);
+    _CollisionManager.Update();
+
+    // Remove bullets marked for removal (shutdown collision and erase from deque)
+    _Player.UpdateBullets(*_EngineContext);
 
     // UI code
     // Draw Player health bar
@@ -152,7 +165,8 @@ void GameManager::Update(float elapsedTime)
         _EngineContext->FillRect(healthBarPos, olc::vi2d(healthWidth, 5), olc::GREEN);
     }
     DrawUI();
-    _EngineContext->DrawString(10, 10, "FPS : " + std::to_string(_EngineContext->GetFPS()), secondaryUICyan);
+    _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
+    GameLogic(elapsedTime);
 #endif
 }
 
@@ -177,5 +191,87 @@ GameManager::~GameManager()
 void GameManager::DrawUI() {
 	// Draw a simple white bar at the top of the screen for UI background
     _EngineContext->FillRect(0, 0, 1920, 35, bgColorNavyBlue);
-   
+    _EngineContext->DrawLine(0, 35, 1920, 35, mainUIOrange);
+	int scoreTextWidth = _EngineContext->GetTextSize("Score: " + std::to_string(static_cast<int>(_Player.GetHealth()))).x;
+	_EngineContext->DrawString(1820 - scoreTextWidth, 12, "Score: " + std::to_string(static_cast<int>(_Player.GetHealth())), alertUIYellow, 2);
+}
+
+void GameManager::GameLogic(float elapsedTime) {
+    // Non-blocking game over handling with fade transition and spawner pause
+    if (!_IsGameOver && _Player.GetHealth() <= 0) {
+        _IsGameOver = true;
+        _SpawnersPaused = true; // pause spawner processing
+        _IsFadingIn = true;
+        _GameOverFade = 0.0f;
+    }
+
+    if (_IsGameOver) {
+        // advance fade in
+        if (_IsFadingIn) {
+            _GameOverFade += elapsedTime / _GameOverFadeDuration;
+            if (_GameOverFade >= 1.0f) {
+                _GameOverFade = 1.0f;
+                _IsFadingIn = false;
+            }
+        }
+
+        // draw overlay with alpha based on fade
+        // olc::Pixel takes RGB only; simulate alpha by interpolating color toward DARK_RED
+		// Taken from Github Copilot suggestion, looks good and is simple enough to understand, nice job Copilot :D
+        auto blend = [&](const olc::Pixel& a, const olc::Pixel& b, float t) {
+            uint8_t r = static_cast<uint8_t>(a.r * (1.0f - t) + b.r * t);
+            uint8_t g = static_cast<uint8_t>(a.g * (1.0f - t) + b.g * t);
+            uint8_t bl = static_cast<uint8_t>(a.b * (1.0f - t) + b.b * t);
+            return olc::Pixel(r, g, bl);
+        };
+
+        olc::Pixel bg = blend(olc::BLACK, olc::DARK_RED, _GameOverFade);
+        _EngineContext->Clear(bg);
+        _EngineContext->DrawString(900, 540, "GAME OVER", alertUIYellow, 3);
+        _EngineContext->DrawString(850, 600, "Press R to Restart", alertUIYellow, 2);
+
+        // Wait for restart input each frame, allow fade-out when restarting
+        if (_EngineContext->GetKey(olc::Key::R).bPressed) {
+            // start fade out
+            _IsFadingOut = true;
+            _IsFadingIn = false;
+        }
+
+        if (_IsFadingOut) {
+            _GameOverFade -= elapsedTime / _GameOverFadeDuration;
+            if (_GameOverFade <= 0.0f) {
+                _GameOverFade = 0.0f;
+                _IsFadingOut = false;
+                // perform reset once fade out completes
+                RestartGame();
+            }
+        }
+    }
+}
+
+void GameManager::RestartGame() {
+    // Reset player
+	_Player.SetPosition(olc::vf2d(0.0f, 0.0f));
+    _Player.SetHealth(100.0f);
+    SetScore(0.0f);
+
+    // Clear bullets
+    auto& bullets = _Player.GetBullets();
+    bullets.clear();
+
+    // Clear enemies in each spawner (protected by mutex)
+    for (auto& sp : _Spawners) {
+        std::lock_guard<std::mutex> lk(sp->GetEnnemiesMutex());
+        auto& enemys = sp->GetEnnemies();
+        enemys.clear();
+    }
+
+    // Reset spawn requests
+    for (auto& req : _SpawnRequested) {
+        if (req) req->store(false);
+    }
+
+    // Resume spawners and timers
+    _SpawnersPaused = false;
+    _IsGameOver = false;
 }

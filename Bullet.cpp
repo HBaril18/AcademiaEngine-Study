@@ -9,7 +9,9 @@ void Bullet::Draw(AcademiaEngine& engine) {
 
 void Bullet::Update(AcademiaEngine& engine, float elapsedTime)
 {
-    Position += direction * speed * elapsedTime;
+	// Save previous position for sweep collision tests
+	previousPosition = Position;
+	Position += direction * speed * elapsedTime;
 	if (collider) collider->position = Position;
 }
 

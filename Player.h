@@ -32,6 +32,7 @@ public:
 	void UpdateBullets(AcademiaEngine& engineContext);
 	void TakeDamage(float damage) { Health = Health - damage; }
 	float GetHealth() const { return Health; }
+	float SetHealth(float health) { Health = health; return Health; }
 
 	// Collision
 	Collider* collider = nullptr;
@@ -44,7 +45,7 @@ public:
 
 protected:
     float Radius = 20.0f;
-	olc::Pixel Color = olc::Pixel(155, 92, 255);
+	olc::Pixel Color = olc::Pixel(46, 230, 214);
     std::deque<Bullet> bullets;
 	float Health = 100.0f;
 	float Damage = 10.0f;

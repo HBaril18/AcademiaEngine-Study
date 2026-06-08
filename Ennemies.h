@@ -54,7 +54,7 @@ public:
 
 protected:
     float Radius = 15.0f;
-    olc::Pixel Color = olc::Pixel(255, 77, 157);
+    olc::Pixel Color = olc::Pixel(255, 59, 59);
 	float Health = 50.0f;
 
 private:

@@ -84,7 +84,7 @@ void Ennemies::Draw(AcademiaEngine& engine) {
 	engine.FillRect(pixelPos + olc::vi2d(-20, -30), olc::vi2d(40, 5), olc::WHITE);
     if (GetHealth() > 0) {
         int healthWidth = static_cast<int>(40 * (GetHealth() / 50.0f));
-		olc::Pixel healthColor = (255, 59, 59);
+		olc::Pixel healthColor = olc::Pixel(255, 0, 0);
         engine.FillRect(pixelPos + olc::vi2d(-20, -30), olc::vi2d(healthWidth, 5), healthColor);
     }
 }
