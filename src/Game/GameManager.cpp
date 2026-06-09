@@ -16,6 +16,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
     int random_num = distrib(gen);
 
 #ifdef ACADEMIA_EXAMPLE
+	_Player.SetGameManager(this);
     _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
     // Setup collision manager references
     _CollisionManager.SetPlayer(&_Player);
@@ -132,6 +133,7 @@ void GameManager::Update(float elapsedTime)
             enemy.Draw(*_EngineContext);
         }
         Ennemies::RemoveEnnemie(enemys);
+		_Player.AddScore(10.0f * enemys.size() * elapsedTime); // small score bonus for surviving more enemies
     }
 
     _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
@@ -192,11 +194,20 @@ void GameManager::DrawUI() {
 	// Draw a simple white bar at the top of the screen for UI background
     _EngineContext->FillRect(0, 0, 1920, 35, bgColorNavyBlue);
     _EngineContext->DrawLine(0, 35, 1920, 35, mainUIOrange);
-	int scoreTextWidth = _EngineContext->GetTextSize("Score: " + std::to_string(static_cast<int>(_Player.GetHealth()))).x;
-	_EngineContext->DrawString(1820 - scoreTextWidth, 12, "Score: " + std::to_string(static_cast<int>(_Player.GetHealth())), alertUIYellow, 2);
+	int scoreTextWidth = _EngineContext->GetTextSize("Score: " + std::to_string(static_cast<int>(GetScore()))).x;
+	_EngineContext->DrawString(1820 - scoreTextWidth, 12, "Score: " + std::to_string(static_cast<int>(GetScore())), alertUIYellow, 2);
 }
 
 void GameManager::GameLogic(float elapsedTime) {
+	if (_Player.GetHealth() > 0) {
+		// Increase score over time, faster if player is doing well
+		float scoreIncrement = elapsedTime * 10.0f; // base increment
+		if (_Player.GetHealth() > 50.0f) {
+			scoreIncrement *= 1.5f; // bonus multiplier for good health
+		}
+		AddScore(scoreIncrement);
+	}
+
     // Non-blocking game over handling with fade transition and spawner pause
     if (!_IsGameOver && _Player.GetHealth() <= 0) {
         _IsGameOver = true;

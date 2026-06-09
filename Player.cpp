@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
 #include "CollisionManager.h"
+#include "AcademiaEngine-Study/../src/Game/GameManager.h"
 
 /*----------------------------------*/
 //                                  //
@@ -133,4 +134,10 @@ void Player::UpdateBullets(AcademiaEngine& engineContext) {
              }),
          bullets.end()
      );
+}
+
+void Player::AddScore(float scoreToAdd) {
+    if (gameManager) {
+        gameManager->AddScore(scoreToAdd);
+    }
 }

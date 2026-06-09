@@ -5,6 +5,7 @@
 #include <deque>
 
 // Forward declaration
+class GameManager;
 class CollisionManager;
 struct Collider;
 
@@ -33,6 +34,8 @@ public:
 	void TakeDamage(float damage) { Health = Health - damage; }
 	float GetHealth() const { return Health; }
 	float SetHealth(float health) { Health = health; return Health; }
+	void SetGameManager(GameManager* gm) { gameManager = gm; }
+	void AddScore(float scoreToAdd);
 
 	// Collision
 	Collider* collider = nullptr;
@@ -49,5 +52,6 @@ protected:
     std::deque<Bullet> bullets;
 	float Health = 100.0f;
 	float Damage = 10.0f;
+	GameManager* gameManager;
 	bool IsAlive() const { return Health > 0.0f; }
 };
