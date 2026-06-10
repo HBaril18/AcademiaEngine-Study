@@ -28,8 +28,9 @@ public:
     void Update(float elapsedTime);
     void Uninitialize();
     void DrawUI();
-    void GameLogic(float elapsedTime);
-    void RestartGame();
+    void EndGameLogic(float elapsedTime);
+    void StartGameLogic(float elapsedTime);
+    void StartGame();
 	void AddScore(float scoreToAdd) { _Score += scoreToAdd; }
 	float GetScore() const { return _Score; }
 	void SetScore(float score) { _Score = score; }
@@ -48,6 +49,7 @@ private:
 	float _Score = 0.0f;
     // Non-blocking game over state flag
     bool _IsGameOver = false;
+	bool _IsGameStarted = false;
     // Whether spawners are currently paused due to game over
     bool _SpawnersPaused = false;
     // Game over transition (fade) parameters

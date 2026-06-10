@@ -67,7 +67,7 @@ void GameManager::Initialize(AcademiaEngine* engineContext)
 
 void GameManager::Update(float elapsedTime)
 {
-
+    StartGameLogic(elapsedTime);
     constexpr olc::Key rightKey = olc::Key::D;
     constexpr olc::Key leftKey = olc::Key::A;
     constexpr olc::Key upKey = olc::Key::W;
@@ -168,7 +168,7 @@ void GameManager::Update(float elapsedTime)
     }
     DrawUI();
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
-    GameLogic(elapsedTime);
+    EndGameLogic(elapsedTime);
 #endif
 }
 
@@ -198,15 +198,33 @@ void GameManager::DrawUI() {
 	_EngineContext->DrawString(1820 - scoreTextWidth, 12, "Score: " + std::to_string(static_cast<int>(GetScore())), alertUIYellow, 2);
 }
 
-void GameManager::GameLogic(float elapsedTime) {
-	if (_Player.GetHealth() > 0) {
-		// Increase score over time, faster if player is doing well
-		float scoreIncrement = elapsedTime * 10.0f; // base increment
-		if (_Player.GetHealth() > 50.0f) {
-			scoreIncrement *= 1.5f; // bonus multiplier for good health
-		}
-		AddScore(scoreIncrement);
-	}
+void GameManager::StartGameLogic(float elapsedTime) {
+    if (!_IsGameStarted) {
+        _EngineContext->Clear(mainUIOrange);
+        _EngineContext->DrawString(900, 540, "START GAME", bgColorNavyBlue, 3);
+        _EngineContext->DrawString(850, 600, "Press SPACE to start", bgColorNavyBlue, 2);
+
+        // Wait for restart input each frame, allow fade-out when restarting
+        if (_EngineContext->GetKey(olc::Key::SPACE).bPressed) {
+            // start the game once
+            StartGame();
+            _IsGameStarted = true;
+        }
+    }
+
+}
+
+void GameManager::EndGameLogic(float elapsedTime) {
+    // Do not reset _IsGameStarted here - keep start state until explicit restart
+    // Only increase score during active gameplay (not on start screen or when game over)
+    if (_IsGameStarted && !_IsGameOver && _Player.GetHealth() > 0) {
+        // Increase score over time, faster if player is doing well
+        float scoreIncrement = elapsedTime * 10.0f; // base increment
+        if (_Player.GetHealth() > 50.0f) {
+            scoreIncrement *= 1.5f; // bonus multiplier for good health
+        }
+        AddScore(scoreIncrement);
+    }
 
     // Non-blocking game over handling with fade transition and spawner pause
     if (!_IsGameOver && _Player.GetHealth() <= 0) {
@@ -253,14 +271,21 @@ void GameManager::GameLogic(float elapsedTime) {
             if (_GameOverFade <= 0.0f) {
                 _GameOverFade = 0.0f;
                 _IsFadingOut = false;
-                // perform reset once fade out completes
-                RestartGame();
+                // finish game-over state and return to start screen
+                // Reset transient gameplay state so EndGameLogic won't immediately re-enter GAME OVER
+                StartGame(); // clears bullets/enemies and restores player health
+                // but keep spawners paused while on the start screen
+                _SpawnersPaused = true;
+                _IsGameOver = false;
+                // ensure start screen is active (wait for SPACE to start)
+                _IsGameStarted = false;
             }
         }
     }
 }
 
-void GameManager::RestartGame() {
+void GameManager::StartGame() {
+    _EngineContext->Clear(bgColorNavyBlue);
     // Reset player
 	_Player.SetPosition(olc::vf2d(0.0f, 0.0f));
     _Player.SetHealth(100.0f);
