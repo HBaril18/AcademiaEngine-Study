@@ -57,6 +57,7 @@ private:
     float _GameOverFadeDuration = 1.0f; // seconds for fade in/out
     bool _IsFadingIn = false;
     bool _IsFadingOut = false;
+    bool _OptionsSelected = false;
 
 #ifdef ACADEMIA_EXAMPLE
     ExampleGameObject _ExampleObject;

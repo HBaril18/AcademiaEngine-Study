@@ -201,6 +201,20 @@ void GameManager::DrawUI() {
 void GameManager::StartGameLogic(float elapsedTime) {
     if (!_IsGameStarted) {
         _EngineContext->Clear(mainUIOrange);
+
+        // Options button
+		_EngineContext->FillRect(900, 200, 120, 41, bgColorNavyBlue);
+		_EngineContext->FillCircle(895, 220, 20, bgColorNavyBlue);
+		_EngineContext->FillCircle(1024, 220, 20, bgColorNavyBlue);
+        _EngineContext->DrawString(905, 215, "OPTIONS", alertUIYellow, 2);
+
+		if (_OptionsSelected) {
+            _EngineContext->Clear(bgColorNavyBlue);
+			_EngineContext->DrawString(850, 300, "Option 1: ...", alertUIYellow, 2);
+			_EngineContext->DrawString(850, 350, "Option 2: ...", alertUIYellow, 2);
+			_EngineContext->DrawString(850, 400, "Option 3: ...", alertUIYellow, 2);
+		}
+
         _EngineContext->DrawString(900, 540, "START GAME", bgColorNavyBlue, 3);
         _EngineContext->DrawString(850, 600, "Press SPACE to start", bgColorNavyBlue, 2);
 
@@ -210,6 +224,24 @@ void GameManager::StartGameLogic(float elapsedTime) {
             StartGame();
             _IsGameStarted = true;
         }
+
+        // Allow player to shoot the OPTIONS button to select it
+        // Check bullets for collision with the button rectangle (in screen pixels)
+        auto& bullets = _Player.GetBullets();
+        olc::vf2d btnPos(895.0f, 200.0f);
+        olc::vi2d btnSize(129, 41);
+        for (auto& b : bullets) {
+            // bullets are in world-space, convert to screen pixels
+            olc::vi2d bPixel = _EngineContext->ConvertWorldPositionToPixels(b.GetPosition());
+            if (bPixel.x >= btnPos.x && bPixel.x <= btnPos.x + btnSize.x &&
+                bPixel.y >= btnPos.y && bPixel.y <= btnPos.y + btnSize.y) {
+                // bullet hit the button
+                _OptionsSelected = !_OptionsSelected; // toggle selection
+                b.markedForRemoval = true;
+            }
+        }
+        // remove bullets marked for removal so they won't show/be reused
+        _Player.UpdateBullets(*_EngineContext);
     }
 
 }

@@ -36,7 +36,7 @@ private:
     olc::vf2d direction;
     // store previous position to allow sweep tests (prevent tunneling)
     olc::vf2d previousPosition;
-    olc::Pixel Color = olc::Pixel(255, 157, 59);
+    olc::Pixel Color = olc::Pixel(143, 200, 250);
     float speed = 1200.0f;
 	float radius = 5.0f;
 };
