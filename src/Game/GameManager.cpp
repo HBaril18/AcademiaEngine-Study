@@ -179,51 +179,63 @@ void GameManager::DrawUI() {
 void GameManager::SetupSpawner() {
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> distrib(3, 10);
-    int random_num = distrib(gen);
-    // Create multiple spawners
-    int spawnerCount = 2 + static_cast<int>(_DifficultyLevel); // configurable number of spawners
+
+    int spawnerCount = 2 + static_cast<int>(_DifficultyLevel);
+
     std::cout << "Difficulté : " << std::to_string(static_cast<int>(_DifficultyLevel));
     std::cout << "Nombre de spawner : " << spawnerCount;
-    
+
     _Spawners.reserve(spawnerCount);
-    // Note: reserve() only increases capacity, not size().
-    // Do not access _Spawners by index before push_back; set positions on the spawner
-    // object before moving it into the vector.
     _SpawnerTimers.reserve(spawnerCount);
     _SpawnRequested.resize(spawnerCount);
 
     for (int i = 0; i < spawnerCount; ++i) {
+
         auto sp = std::make_unique<Spawner>();
-        // position spawners: start them off-screen depending on index, or default positions
-        if (i == 0) {
-            sp->SetPosition(olc::vf2d(_EngineContext->ScreenWidth()/2, _EngineContext->ScreenHeight()/2));
-        }
-        else if (i == 1) {
-            sp->SetPosition(olc::vf2d(-(_EngineContext->ScreenWidth()/2), _EngineContext->ScreenHeight()/2));
-        }
-        else if (i == 2) {
-            sp->SetPosition(olc::vf2d(_EngineContext->ScreenWidth()/2, -(_EngineContext->ScreenHeight()/2)));
-        }
-        else if (i == 3) {
-            sp->SetPosition(olc::vf2d(-(_EngineContext->ScreenWidth()/2), -(_EngineContext->ScreenHeight() / 2)));
-        }
+
+        if (i == 0)
+            sp->SetPosition(olc::vf2d(_EngineContext->ScreenWidth() / 2, _EngineContext->ScreenHeight() / 2 ));
+        else if (i == 1)
+            sp->SetPosition(olc::vf2d(-_EngineContext->ScreenWidth() / 2, _EngineContext->ScreenHeight() / 2 ));
+        else if (i == 2)
+            sp->SetPosition(olc::vf2d(_EngineContext->ScreenWidth() / 2, -_EngineContext->ScreenHeight() / 2 ));
+        else if (i == 3)
+            sp->SetPosition(olc::vf2d(-_EngineContext->ScreenWidth() / 2, -_EngineContext->ScreenHeight() / 2 ));
 
         sp->SetCollisionManager(&_CollisionManager);
-
-        // store spawner
         _Spawners.push_back(std::move(sp));
 
-        // prepare atomic flag default false (store via unique_ptr wrapper)
         _SpawnRequested[i] = std::make_unique<std::atomic<bool>>(false);
+        /*=========MADE WITH THE HELP OF COPILOT================*/
+        // 1. interval initial
+        std::uniform_int_distribution<int> distrib(3, 10);
+        auto interval = std::chrono::seconds(distrib(gen));
 
-        // create a timer per spawner (stagger intervals slightly)
-        auto spawnTask = [this, i]() {
-            if (_SpawnRequested[i]) _SpawnRequested[i]->store(true);
+        // 2. créer le timer d'abord (sans task)
+        auto timer = std::make_unique<PeriodicTimer>(interval, []() {});
+        auto timerPtr = timer.get(); // ✅ pointeur SAFE
+
+        // 3. créer la task avec pointeurs stables
+        auto spawnTask = [this, i, timerPtr]() {
+
+            if (_SpawnRequested[i])
+                _SpawnRequested[i]->store(true);
+
+            static thread_local std::mt19937 gen(std::random_device{}());
+            std::uniform_int_distribution<int> distrib(3, 10);
+
+            int nextDelay = distrib(gen);
             };
-        auto interval = std::chrono::seconds(1 + random_num); // slightly different interval
-        _SpawnerTimers.push_back(std::make_unique<PeriodicTimer>(interval, spawnTask));
+
+        // 4. injecter la task
+        timer->setTask(spawnTask);
+
+        // 5. stocker
+        _SpawnerTimers.push_back(std::move(timer));
+
+        // 6. start
         _SpawnerTimers.back()->start();
+        /*========================================================*/
     }
 }
 
@@ -354,8 +366,18 @@ void GameManager::EndGameLogic(float elapsedTime) {
 }
 
 void GameManager::StartGame() {
+    //Clear all spawner
+    for (auto& t : _SpawnerTimers) {
+        if (t) t->stop();
+    }
+    _Spawners.clear();
+    _SpawnerTimers.clear();
+    _SpawnRequested.clear();
+
     SetupSpawner();
+
     _EngineContext->Clear(bgColorNavyBlue);
+
     // Reset player
 	_Player.SetPosition(olc::vf2d(0.0f, 0.0f));
     _Player.SetHealth(100.0f);
