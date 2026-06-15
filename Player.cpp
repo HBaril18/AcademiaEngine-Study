@@ -117,6 +117,11 @@ void Player::UpdateBullets(AcademiaEngine& engineContext) {
     bullets.erase(
         std::remove_if(bullets.begin(), bullets.end(),
             [&](Bullet& bullet) {
+                // Remove bullets explicitly flagged for removal (e.g., hit UI)
+                if (bullet.markedForRemoval) {
+                    if (collisionManager && bullet.collider) bullet.ShutdownCollision(collisionManager);
+                    return true;
+                }
                 // If player has a collision manager, shutdown bullet collision before removal
                 if (collisionManager && bullet.collider && !bullet.collider->enabled) {
                     // ensure we only shutdown once

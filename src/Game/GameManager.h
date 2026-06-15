@@ -19,6 +19,27 @@
 
 class AcademiaEngine;
 
+enum class ESpawnerType
+{
+    Basic,
+    Fast,
+    Tank
+};
+
+enum class ESpawnPattern
+{
+    Circular,
+    Linear,
+    RadialBurst
+};
+
+enum class EDifficultyLevel
+{
+    Easy,
+    Medium,
+    Hard
+};
+
 class GameManager
 {
 
@@ -31,9 +52,12 @@ public:
     void EndGameLogic(float elapsedTime);
     void StartGameLogic(float elapsedTime);
     void StartGame();
+    const bool ButtonDetection(const olc::vi2d& buttonPos, const olc::vi2d& buttonSize);
+    void DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color);
 	void AddScore(float scoreToAdd) { _Score += scoreToAdd; }
 	float GetScore() const { return _Score; }
 	void SetScore(float score) { _Score = score; }
+    void SetupSpawner();
     ~GameManager();
 
     //Color used for UI
@@ -58,6 +82,7 @@ private:
     bool _IsFadingIn = false;
     bool _IsFadingOut = false;
     bool _OptionsSelected = false;
+    EDifficultyLevel _DifficultyLevel = EDifficultyLevel::Medium;
 
 #ifdef ACADEMIA_EXAMPLE
     ExampleGameObject _ExampleObject;
