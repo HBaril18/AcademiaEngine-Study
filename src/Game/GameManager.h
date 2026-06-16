@@ -45,19 +45,20 @@ class GameManager
 
 public:
 
-    void Initialize(AcademiaEngine* engineContext);
-    void Update(float elapsedTime);
-    void Uninitialize();
-    void DrawUI();
-    void EndGameLogic(float elapsedTime);
-    void StartGameLogic(float elapsedTime);
-    void StartGame();
+    bool Initialize(AcademiaEngine* engineContext);
+    bool SetUpControl(AcademiaEngine* engineContext);
+    bool Update(float elapsedTime);
+    bool Uninitialize();
+    bool DrawUI();
+    bool EndGameLogic(float elapsedTime);
+    bool StartGameLogic(float elapsedTime);
+    bool StartGame();
     const bool ButtonDetection(const olc::vi2d& buttonPos, const olc::vi2d& buttonSize);
-    void DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color);
-	void AddScore(float scoreToAdd) { _Score += scoreToAdd; }
+    bool DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color);
+    void AddScore(float scoreToAdd) { _Score += scoreToAdd; }
 	float GetScore() const { return _Score; }
-	void SetScore(float score) { _Score = score; }
-    void SetupSpawner();
+    void SetScore(float score) { _Score = score; }
+    bool SetupSpawner();
     ~GameManager();
 
     //Color used for UI
@@ -65,6 +66,14 @@ public:
     const olc::Pixel mainUIOrange = olc::Pixel(255, 140, 66);
     const olc::Pixel secondaryUILightBlue = olc::Pixel(155, 92, 255);
     const olc::Pixel alertUIYellow = olc::Pixel(255, 217, 61);
+
+    //Movement Keys
+    const olc::HWButton moveRightButton;
+    const olc::HWButton moveLeftButton;
+    const olc::HWButton moveUpButton;
+    const olc::HWButton moveDownButton;
+    const olc::HWButton jumpButton;
+    const olc::HWButton sneakButton;
 
 private:
 
@@ -77,11 +86,13 @@ private:
     // Whether spawners are currently paused due to game over
     bool _SpawnersPaused = false;
     // Game over transition (fade) parameters
-    float _GameOverFade = 0.0f; // 0.0 = no overlay, 1.0 = full overlay
+    //➥ 0.0 = no overlay, 1.0 = full overlay
+    float _GameOverFade = 0.0f; 
     float _GameOverFadeDuration = 1.0f; // seconds for fade in/out
     bool _IsFadingIn = false;
     bool _IsFadingOut = false;
     bool _OptionsSelected = false;
+    bool _Success = true;
     EDifficultyLevel _DifficultyLevel = EDifficultyLevel::Medium;
 
 #ifdef ACADEMIA_EXAMPLE

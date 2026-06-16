@@ -45,8 +45,8 @@ public:
     const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine) const;
     void GetDirection(AcademiaEngine& engine, olc::vf2d playerPosition);
 
-    const Player* GetPlayer() const { return player; }
-    void SetPlayer(const Player* p);
+    Player* GetPlayer() const { return player; }
+    void SetPlayer(Player* p);
 
     float GetRadius() const { return Radius; }
 
@@ -58,5 +58,5 @@ protected:
 	float Health = 50.0f;
 
 private:
-    const Player* player = nullptr;
+    Player* player = nullptr;
 };
