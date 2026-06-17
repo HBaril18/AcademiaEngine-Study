@@ -159,6 +159,7 @@
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="CollisionManager.cpp" />
     <ClCompile Include="Ennemies.cpp" />
+    <ClCompile Include="Explosion.cpp" />
     <ClCompile Include="PeriodicTimer.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Spawner.cpp" />
@@ -173,6 +174,7 @@
     <ClInclude Include="Character.h" />
     <ClInclude Include="Collider.h" />
     <ClInclude Include="CollisionManager.h" />
+    <ClInclude Include="Explosion.h" />
     <ClInclude Include="PeriodicTimer.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Spawner.h" />

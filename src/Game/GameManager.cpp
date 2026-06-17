@@ -27,9 +27,8 @@ bool GameManager::Initialize(AcademiaEngine* engineContext)
 #endif
 }
 
-bool GameManager::Update(float elapsedTime)
+void GameManager::Update(float elapsedTime)
 {
-    _Success = true;
     StartGameLogic(elapsedTime);
 
     
@@ -37,6 +36,19 @@ bool GameManager::Update(float elapsedTime)
     //Movement handle
     float x = 0.0f;
     float y = 0.0f;
+
+    constexpr olc::Key rightKey = olc::Key::D;
+    constexpr olc::Key leftKey = olc::Key::A;
+    constexpr olc::Key upKey = olc::Key::W;
+    constexpr olc::Key downKey = olc::Key::S;
+    constexpr olc::Key spaceKey = olc::Key::SPACE;
+    constexpr olc::Key shiftKey = olc::Key::SHIFT;
+    const olc::HWButton moveRightButton = _EngineContext->GetKey(rightKey);
+    const olc::HWButton moveLeftButton = _EngineContext->GetKey(leftKey);
+    const olc::HWButton moveUpButton = _EngineContext->GetKey(upKey);
+    const olc::HWButton moveDownButton = _EngineContext->GetKey(downKey);
+    const olc::HWButton jumpButton = _EngineContext->GetKey(spaceKey);
+    const olc::HWButton sneakButton = _EngineContext->GetKey(shiftKey);
 
     // This is very good, I don't like input code, it looks ugly I find :p, but there is no better way than this. Good Job :) 
     if (moveRightButton.bHeld) { x += 1.0f; }
@@ -130,7 +142,6 @@ bool GameManager::Update(float elapsedTime)
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
     EndGameLogic(elapsedTime);
 #endif
-    return _Success;
 }
 
 //Clear all the pointer after the game close to clear the memory.
@@ -153,26 +164,6 @@ bool GameManager::Uninitialize() {
     return _Success;
 }
 
-bool GameManager::SetUpControl(AcademiaEngine* engineContext) {
-    _Success = true;
-    constexpr olc::Key rightKey = olc::Key::D;
-    constexpr olc::Key leftKey = olc::Key::A;
-    constexpr olc::Key upKey = olc::Key::W;
-    constexpr olc::Key downKey = olc::Key::S;
-    constexpr olc::Key spaceKey = olc::Key::SPACE;
-    constexpr olc::Key shiftKey = olc::Key::SHIFT;
-    try {
-        const olc::HWButton moveRightButton = engineContext->GetKey(rightKey);
-        const olc::HWButton moveLeftButton = engineContext->GetKey(leftKey);
-        const olc::HWButton moveUpButton = engineContext->GetKey(upKey);
-        const olc::HWButton moveDownButton = engineContext->GetKey(downKey);
-        const olc::HWButton jumpButton = engineContext->GetKey(spaceKey);
-        const olc::HWButton sneakButton = engineContext->GetKey(shiftKey);
-    }
-    catch (...) { _Success = false; }
-    return _Success;
-}
-
 //Destructor of GameManager to Unitialize pointer.
 GameManager::~GameManager()
 {
@@ -184,34 +175,25 @@ GameManager::~GameManager()
 //➥ FPS
 //➥ Difficulty
 //➥ Current Score
-bool GameManager::DrawUI() {
-    _Success = true; 
-    try {
+void GameManager::DrawUI() {
         _EngineContext->FillRect(0, 0, 1920, 35, bgColorNavyBlue);
         _EngineContext->DrawLine(0, 35, 1920, 35, mainUIOrange);
         int scoreTextWidth = _EngineContext->GetTextSize("Score: " + std::to_string(static_cast<int>(GetScore()))).x;
         _EngineContext->DrawString(1820 - scoreTextWidth, 12, "Score: " + std::to_string(static_cast<int>(GetScore())), alertUIYellow, 2);
-    }
-    catch (...) { _Success = false; }
 
     switch (static_cast<int>(_DifficultyLevel)) {
     case 0:
         _EngineContext->DrawString(830, 12, "Difficulty : EASY", alertUIYellow, 2);
-        _Success = true;
         break;
     case 1:
         _EngineContext->DrawString(830, 12, "Difficulty : MEDIUM", alertUIYellow, 2);
-        _Success = true;
         break;
     case 2:
         _EngineContext->DrawString(830, 12, "Difficulty : HARD", alertUIYellow, 2);
-        _Success = true;
         break;
     default:
-        _Success = false;
         break;
     }
-    return _Success;
 }
 
 //Setup the spawner of ennemies.
@@ -297,8 +279,7 @@ bool GameManager::SetupSpawner() {
 //➥ MEDIUM button
 //➥ HARD button
 //➥ Redrawing of OPTIONS button and "Press SPACE to start" text
-bool GameManager::StartGameLogic(float elapsedTime) {
-    _Success = true;
+void GameManager::StartGameLogic(float elapsedTime) {
     if (!_IsGameStarted) {
 		_SpawnersPaused = true; // ensure spawners are paused on start screen
         _EngineContext->Clear(mainUIOrange);
@@ -356,11 +337,9 @@ bool GameManager::StartGameLogic(float elapsedTime) {
             }
 		}
     }
-    return _Success;
 }
 
-bool GameManager::EndGameLogic(float elapsedTime) {
-    _Success = true;
+void GameManager::EndGameLogic(float elapsedTime) {
     // Do not reset _IsGameStarted here - keep start state until explicit restart
     // Only increase score during active gameplay (not on start screen or when game over)
     if (_IsGameStarted && !_IsGameOver && _Player.GetHealth() > 0) {
@@ -425,11 +404,9 @@ bool GameManager::EndGameLogic(float elapsedTime) {
             }
         }
     }
-    return _Success;
 }
 
-bool GameManager::StartGame() {
-    _Success = true;
+void GameManager::StartGame() {
     //Clear all spawner
     for (auto& t : _SpawnerTimers) {
         if (t) t->stop();
@@ -466,16 +443,12 @@ bool GameManager::StartGame() {
     // Resume spawners and timers
     _SpawnersPaused = false;
     _IsGameOver = false;
-
-    return _Success;
 }
 
 //➥ Allow player to shoot the button to select it
 //➥ Check bullets for collision with the button rectangle (in screen pixels)
 const bool GameManager::ButtonDetection(const olc::vi2d& buttonPos, const olc::vi2d& buttonSize) {
-    _Success = true;
     auto& bullets = _Player.GetBullets();
-    if (!&bullets) _Success = false;
     for (auto& b : bullets) {
         // bullets are in world-space, convert to screen pixels
         olc::vi2d bPixel = _EngineContext->ConvertWorldPositionToPixels(b.GetPosition());
@@ -483,17 +456,16 @@ const bool GameManager::ButtonDetection(const olc::vi2d& buttonPos, const olc::v
             bPixel.y >= buttonPos.y && bPixel.y <= buttonPos.y + buttonSize.y) {
             // bullet hit the button: mark for removal and return immediately
             b.markedForRemoval = true;
+            return true;
         }
     }
-    return _Success;
+    return false;
 }
 
 //➥ Draw button with curved edges by drawing a rectangle and two circles at the ends, all in the same color
 //➥ Take the Rectangle position and size as parameters, as well as the color to draw the button with the edges
-bool GameManager::DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color) {
-    _Success = true;
+void GameManager::DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color) {
     _EngineContext->FillRect(buttonPos.x, buttonPos.y, buttonSize.x, buttonSize.y, color);
     _EngineContext->FillCircle(buttonPos.x - 5, buttonPos.y + (buttonSize.y/2), (buttonSize.y / 2), color);
     _EngineContext->FillCircle(buttonPos.x + buttonSize.x + 4, buttonPos.y + (buttonSize.y / 2), (buttonSize.y / 2), color);
-    return _Success;
 }

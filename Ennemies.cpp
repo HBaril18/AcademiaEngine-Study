@@ -124,7 +124,10 @@ void Ennemies::TakeDamage(float damage) {
         Health = 0.0f;
         Player* p = GetPlayer();
         p->AddScore(100.0f);
-        std::cout << "Score added : " << 100.0f;
+
+        //Explosion effect on death
+        
+
         // disable collider immediately to avoid further collision processing
         if (collider) collider->enabled = false;
     }

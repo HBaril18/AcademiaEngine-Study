@@ -46,15 +46,15 @@ class GameManager
 public:
 
     bool Initialize(AcademiaEngine* engineContext);
-    bool SetUpControl(AcademiaEngine* engineContext);
-    bool Update(float elapsedTime);
+    void SetUpControl(AcademiaEngine* engineContext);
+    void Update(float elapsedTime);
     bool Uninitialize();
-    bool DrawUI();
-    bool EndGameLogic(float elapsedTime);
-    bool StartGameLogic(float elapsedTime);
-    bool StartGame();
+    void DrawUI();
+    void EndGameLogic(float elapsedTime);
+    void StartGameLogic(float elapsedTime);
+    void StartGame();
     const bool ButtonDetection(const olc::vi2d& buttonPos, const olc::vi2d& buttonSize);
-    bool DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color);
+    void DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color);
     void AddScore(float scoreToAdd) { _Score += scoreToAdd; }
 	float GetScore() const { return _Score; }
     void SetScore(float score) { _Score = score; }
