@@ -14,6 +14,7 @@
 #include "Ennemies.h"
 #include "Spawner.h"
 #include "../../CollisionManager.h"
+#include "Explosion.h"
 #endif
 #include "external/olc/olcPixelGameEngine.h"
 
@@ -59,6 +60,7 @@ public:
 	float GetScore() const { return _Score; }
     void SetScore(float score) { _Score = score; }
     bool SetupSpawner();
+    void DoExplosion(float fElapsedTime, olc::vf2d position);
     ~GameManager();
 
     //Color used for UI

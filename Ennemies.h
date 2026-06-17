@@ -3,6 +3,7 @@
 #include "Player.h"
 #include "Collider.h"
 #include "CollisionManager.h"
+#include "src/Game/GameManager.h"
 
 // Forward declare CollisionManager to avoid including its header here
 class CollisionManager;
@@ -17,7 +18,7 @@ class CollisionManager;
 class Ennemies : public Character
 {
 public:
-    Ennemies();
+    Ennemies(GameManager* gm);
     Ennemies(olc::vf2d pos, float radius);
 
     ~Ennemies();
@@ -30,6 +31,8 @@ public:
     // Collision control
     void InitializeCollision(class CollisionManager* collisionManager);
     void ShutdownCollision(class CollisionManager* collisionManager);
+
+    GameManager* gameManager = nullptr;
 
     CollisionManager* collisionManager = nullptr;
     std::unique_ptr<Collider> collider = nullptr;

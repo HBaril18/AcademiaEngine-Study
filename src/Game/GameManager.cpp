@@ -1,6 +1,6 @@
 #include "GameManager.h"
 #include "../../external/olc/olcPixelGameEngine.h"
-#include "../Engine/AcademiaEngine.h"
+#include "../Engine/AcademiaEngine.h" 
 #include <chrono>
 #include <memory>
 #include <mutex>
@@ -468,4 +468,24 @@ void GameManager::DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pix
     _EngineContext->FillRect(buttonPos.x, buttonPos.y, buttonSize.x, buttonSize.y, color);
     _EngineContext->FillCircle(buttonPos.x - 5, buttonPos.y + (buttonSize.y/2), (buttonSize.y / 2), color);
     _EngineContext->FillCircle(buttonPos.x + buttonSize.x + 4, buttonPos.y + (buttonSize.y / 2), (buttonSize.y / 2), color);
+}
+
+void GameManager::DoExplosion(float fElapsedTime, olc::vf2d position) {
+    std::vector<Explosion> explosions;
+
+    // Ajouter une explosion
+    explosions.push_back(Explosion(position));
+
+    // Update + Draw
+    for (auto& e : explosions)
+    {
+        e.Update(fElapsedTime);
+        e.Draw(_EngineContext);
+    }
+
+    // supprimer celles terminées
+    explosions.erase(
+        std::remove_if(explosions.begin(), explosions.end(),
+            [](const Explosion& e) { return e.finished; }),
+        explosions.end());
 }

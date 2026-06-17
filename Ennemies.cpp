@@ -30,8 +30,9 @@ void Ennemies::SetPlayer(Player* p)
     player = p;
 }
 
-Ennemies::Ennemies()
+Ennemies::Ennemies(GameManager* gm)
 {
+    gameManager = gm;
     // unique_ptr default null
     collisionManager = nullptr;
     // Default properties
@@ -125,8 +126,7 @@ void Ennemies::TakeDamage(float damage) {
         Player* p = GetPlayer();
         p->AddScore(100.0f);
 
-        //Explosion effect on death
-        
+        gameManager->DoExplosion();
 
         // disable collider immediately to avoid further collision processing
         if (collider) collider->enabled = false;
