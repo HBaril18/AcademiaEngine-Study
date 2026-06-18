@@ -90,7 +90,7 @@ void CollisionManager::UnregisterCollider(Collider* collider)
 	}
 }
 
-void CollisionManager::Update()
+void CollisionManager::Update(float elapsedTime)
 {
 	// Implementation for updating collisions
 	int collCount = static_cast<int>(colliders.size());
@@ -157,9 +157,31 @@ void CollisionManager::Update()
 				if (overlap) {
 					// Player-Enemy
 					if ((a == 1 && b == 2) || (a == 2 && b == 1)) {
-						if (player && player->damageCooldown <= 0.0f) {
-							player->TakeDamage(10.0f);
-							player->damageCooldown = player->damageDelay;
+						Player* p = player;
+						Ennemies* e = nullptr;
+
+						if (a == 2)
+							e = static_cast<Ennemies*>(colliderA->owner);
+						else
+							e = static_cast<Ennemies*>(colliderB->owner);
+
+						if (p && e && p->damageCooldown <= 0.0f)
+						{
+							//Damage
+							p->TakeDamage(10.0f);
+							p->damageCooldown = p->damageDelay;
+
+							//Knockback direction
+							olc::vf2d dir = p->GetPosition() - e->GetPosition();
+
+							if (dir.mag2() > 0.001f)
+								dir = dir.norm();
+
+							//Apply force
+							float knockbackStrength = 550.0f;
+							p->knockbackVelocity += dir * knockbackStrength;
+							//Ennemie Knockback
+							e->recoilVelocity -= dir * 300.0f;
 						}
 					}
 					// Enemy-Bullet
@@ -174,7 +196,7 @@ void CollisionManager::Update()
 							bullet = static_cast<Bullet*>(colliderA->owner);
 						}
 						if (enemy) {
-							enemy->TakeDamage(10.0f);
+							enemy->TakeDamage(10.0f, elapsedTime);
 						}
 						if (bullet) {
 							RemoveBullet(bullet);

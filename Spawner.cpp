@@ -21,5 +21,4 @@ void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionMan
 		std::lock_guard<std::mutex> lk(ennemies_mutex);
 		ennemies_container.push_back(std::move(enemy));
 	}
-	std::cout << "Spawned enemy at (" << Position.x << "," << Position.y << ") player ptr=" << reinterpret_cast<const void*>(player) << "\n";
 }

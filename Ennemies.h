@@ -18,7 +18,7 @@ class CollisionManager;
 class Ennemies : public Character
 {
 public:
-    Ennemies(GameManager* gm);
+    Ennemies();
     Ennemies(olc::vf2d pos, float radius);
 
     ~Ennemies();
@@ -38,11 +38,14 @@ public:
     std::unique_ptr<Collider> collider = nullptr;
     olc::vf2d direction;
 
+    bool hasExploded = false;
+    olc::vf2d recoilVelocity;
+
     void Draw(AcademiaEngine& engine) override;
     void AddForce(AcademiaEngine& engine, float force, olc::vf2d direction, float elapsedTime);
     void Update(AcademiaEngine& engine, float elapsedTime);
 
-    void TakeDamage(float damage);
+    void TakeDamage(float damage, float elapsedTime);
     static void RemoveEnnemie(std::deque<std::unique_ptr<Ennemies>>& ennemies);
 
     const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine) const;

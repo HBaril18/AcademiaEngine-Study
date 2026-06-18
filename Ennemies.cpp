@@ -30,9 +30,8 @@ void Ennemies::SetPlayer(Player* p)
     player = p;
 }
 
-Ennemies::Ennemies(GameManager* gm)
+Ennemies::Ennemies()
 {
-    gameManager = gm;
     // unique_ptr default null
     collisionManager = nullptr;
     // Default properties
@@ -118,15 +117,13 @@ void Ennemies::AddForce(AcademiaEngine& engine, float force, olc::vf2d direction
     Position += direction * force * elapsedTime;
 }
 
-void Ennemies::TakeDamage(float damage) {
+void Ennemies::TakeDamage(float damage, float elapsedTime) {
     float before = Health;
     Health -= damage;
     if (Health <= 0.0f) {
         Health = 0.0f;
         Player* p = GetPlayer();
         p->AddScore(100.0f);
-
-        gameManager->DoExplosion();
 
         // disable collider immediately to avoid further collision processing
         if (collider) collider->enabled = false;
@@ -143,5 +140,14 @@ void Ennemies::Update(AcademiaEngine& engine, float elapsedTime)
 {
     GetDirection(engine, GetPlayerPosition(engine));
     AddForce(engine, 50.0f, direction, elapsedTime);
+
+    Position += recoilVelocity * elapsedTime;
+
+    recoilVelocity *= 0.85f;
+
+    if (recoilVelocity.mag2() < 1.0f)
+        recoilVelocity = { 0.0f, 0.0f };
+
+
     if (collider) collider->position = Position;
 }

@@ -100,15 +100,24 @@ void GameManager::Update(float elapsedTime)
                 auto& enemy = *enemyPtr;
                 enemy.Update(*_EngineContext, elapsedTime);
                 enemy.Draw(*_EngineContext);
+                
+                if (enemy.GetHealth() <= 0.0f && !enemy.hasExploded) {
+                    _Explosions.emplace_back(enemy.GetPosition(), ExplosionType::Enemy); 
+                }
             }
             Ennemies::RemoveEnnemie(enemys);
             _Player.AddScore(10.0f * enemys.size() * elapsedTime); // small score bonus for surviving more enemies
         }
 
-        _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
-        _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
-        _Player.Update(*_EngineContext, elapsedTime);
-        _Player.Draw(*_EngineContext);
+
+        if (!_PlayerDying)
+        {
+            _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
+            _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
+            _Player.Update(*_EngineContext, elapsedTime);
+            _Player.Draw(*_EngineContext);
+        }
+
 
         // Now that bullets and enemies have moved this frame, run collision detection
         // Rebind bullet collider owners to current addresses in the deque to avoid dangling pointers
@@ -121,13 +130,27 @@ void GameManager::Update(float elapsedTime)
             }
         }
         _CollisionManager.SetBullets(&bulletsRef);
-        _CollisionManager.Update();
+        _CollisionManager.Update(elapsedTime);
 
         // collision logic handled here but bullets already cleaned up
     } else {
         // On start screen, still draw cursor so player can aim and shoot buttons
         _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     }
+
+    //EXPLOSION ANIMATION
+    for (auto& e : _Explosions)
+    {
+        e.Update(elapsedTime);
+        e.Draw(_EngineContext);
+    }
+
+    _Explosions.erase(
+        std::remove_if(_Explosions.begin(), _Explosions.end(),
+            [](const Explosion& e) {
+                return e.finished;
+            }),
+        _Explosions.end());
 
     // UI code
     // Draw Player health bar
@@ -349,12 +372,42 @@ void GameManager::EndGameLogic(float elapsedTime) {
     }
 
     // Non-blocking game over handling with fade transition and spawner pause
-    if (!_IsGameOver && _Player.GetHealth() <= 0) {
-        _IsGameOver = true;
-        _SpawnersPaused = true; // pause spawner processing
-        _IsFadingIn = true;
-        _GameOverFade = 0.0f;
+    if (!_PlayerDying && _Player.GetHealth() <= 0) {
+        _PlayerDying = true;
+        _SpawnersPaused = true;
+
+        if (!_Player.hasExploded) {
+            _Explosions.emplace_back(_Player.GetPosition(), ExplosionType::Player);
+            _Player.hasExploded = true;
+        }
+
+        _GameOverTimer = 0.0f;
     }
+
+
+    if (_PlayerDying)
+    {
+        bool explosionStillRunning = false;
+
+        for (auto& e : _Explosions)
+        {
+            if (!e.finished)
+            {
+                explosionStillRunning = true;
+                break;
+            }
+        }
+
+        if (!explosionStillRunning)
+        {
+            _IsGameOver = true;
+            _IsFadingIn = true;
+            _GameOverFade = 0.0f;
+            _PlayerDying = false;
+        }
+    }
+
+
 
     if (_IsGameOver) {
         // advance fade in
@@ -419,6 +472,14 @@ void GameManager::StartGame() {
 
     _EngineContext->Clear(bgColorNavyBlue);
 
+    // Reset death state
+    _PlayerDying = false;
+    _Player.hasExploded = false;
+    _GameOverTimer = 0.0f;
+
+    // Clear explosions (important)
+    _Explosions.clear();
+
     // Reset player
 	_Player.SetPosition(olc::vf2d(0.0f, 0.0f));
     _Player.SetHealth(100.0f);
@@ -468,24 +529,4 @@ void GameManager::DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pix
     _EngineContext->FillRect(buttonPos.x, buttonPos.y, buttonSize.x, buttonSize.y, color);
     _EngineContext->FillCircle(buttonPos.x - 5, buttonPos.y + (buttonSize.y/2), (buttonSize.y / 2), color);
     _EngineContext->FillCircle(buttonPos.x + buttonSize.x + 4, buttonPos.y + (buttonSize.y / 2), (buttonSize.y / 2), color);
-}
-
-void GameManager::DoExplosion(float fElapsedTime, olc::vf2d position) {
-    std::vector<Explosion> explosions;
-
-    // Ajouter une explosion
-    explosions.push_back(Explosion(position));
-
-    // Update + Draw
-    for (auto& e : explosions)
-    {
-        e.Update(fElapsedTime);
-        e.Draw(_EngineContext);
-    }
-
-    // supprimer celles terminées
-    explosions.erase(
-        std::remove_if(explosions.begin(), explosions.end(),
-            [](const Explosion& e) { return e.finished; }),
-        explosions.end());
 }

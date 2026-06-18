@@ -20,7 +20,7 @@ class CollisionManager
 public:
 	void RegisterCollider(Collider* collider);
 	void UnregisterCollider(Collider* collider);
-	void Update();
+	void Update(float elapsedTime);
 	void SetPlayer(Player* player) { this->player = player; }
 	void SetEnnemies(std::deque<std::unique_ptr<Ennemies>>* ennemies) { this->ennemies = ennemies; }
 	void SetBullets(std::deque<Bullet>* bullets) { this->bullets = bullets; }

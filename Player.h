@@ -20,7 +20,9 @@ class Player : public Character
 {
 public:
 	float damageCooldown = 0.0f;     // temps restant
-	float damageDelay = 0.65f;        // délai entre dégâts (en secondes)
+	float damageDelay = 0.45f;        // délai entre dégâts (en secondes)
+	bool hasExploded = false;
+	olc::vf2d knockbackVelocity = { 0.0f, 0.0f };
 
     void Draw(AcademiaEngine& engine) override;
 	void DrawCursor(AcademiaEngine& engine, olc::vf2d cursorWorldPos);

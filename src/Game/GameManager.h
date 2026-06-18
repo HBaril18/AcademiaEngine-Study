@@ -4,6 +4,7 @@
 #include <atomic>
 #include "../../PeriodicTimer.h"
 #include <vector>
+#include "Explosion.h"
 
 #define ACADEMIA_EXAMPLE
 
@@ -14,11 +15,11 @@
 #include "Ennemies.h"
 #include "Spawner.h"
 #include "../../CollisionManager.h"
-#include "Explosion.h"
 #endif
 #include "external/olc/olcPixelGameEngine.h"
 
 class AcademiaEngine;
+class Spawner;
 
 enum class ESpawnerType
 {
@@ -60,7 +61,6 @@ public:
 	float GetScore() const { return _Score; }
     void SetScore(float score) { _Score = score; }
     bool SetupSpawner();
-    void DoExplosion(float fElapsedTime, olc::vf2d position);
     ~GameManager();
 
     //Color used for UI
@@ -95,9 +95,16 @@ private:
     bool _IsFadingOut = false;
     bool _OptionsSelected = false;
     bool _Success = true;
+
+    float _GameOverDelay = 1.0f; // seconds
+    float _GameOverTimer = 0.0f;
+    bool _PlayerDying = false;
+
     EDifficultyLevel _DifficultyLevel = EDifficultyLevel::Medium;
+    std::vector<Explosion> _Explosions;
 
 #ifdef ACADEMIA_EXAMPLE
+
     ExampleGameObject _ExampleObject;
     Player _Player;
     CollisionManager _CollisionManager;

@@ -16,6 +16,16 @@ void Player::Update(AcademiaEngine& engine, float elapsedTime) {
     if (collider) {
         collider->position = Position;
     }
+
+    // Apply knockback
+    Position += knockbackVelocity * elapsedTime;
+
+    // Damp knockback over time
+    knockbackVelocity *= 0.85f;
+
+    // Stop tiny jitter
+    if (knockbackVelocity.mag2() < 1.0f)
+        knockbackVelocity = { 0.0f, 0.0f };
 }
 
 void Player::InitializeCollision(CollisionManager* collisionManager) {
