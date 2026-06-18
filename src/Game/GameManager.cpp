@@ -43,14 +43,17 @@ void GameManager::Update(float elapsedTime)
     constexpr olc::Key downKey = olc::Key::S;
     constexpr olc::Key spaceKey = olc::Key::SPACE;
     constexpr olc::Key shiftKey = olc::Key::SHIFT;
+    constexpr olc::Key escapeKey = olc::Key::ESCAPE;
     const olc::HWButton moveRightButton = _EngineContext->GetKey(rightKey);
     const olc::HWButton moveLeftButton = _EngineContext->GetKey(leftKey);
     const olc::HWButton moveUpButton = _EngineContext->GetKey(upKey);
     const olc::HWButton moveDownButton = _EngineContext->GetKey(downKey);
     const olc::HWButton jumpButton = _EngineContext->GetKey(spaceKey);
     const olc::HWButton sneakButton = _EngineContext->GetKey(shiftKey);
+    const olc::HWButton escapeButton = _EngineContext->GetKey(escapeKey);
 
     // This is very good, I don't like input code, it looks ugly I find :p, but there is no better way than this. Good Job :) 
+    if (escapeButton.bPressed) { exit(0); }
     if (moveRightButton.bHeld) { x += 1.0f; }
     if (moveLeftButton.bHeld)  { x -= 1.0f; }
     if (moveUpButton.bHeld)    { y += 1.0f; }

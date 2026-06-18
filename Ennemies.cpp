@@ -136,18 +136,25 @@ void Ennemies::RemoveEnnemie(std::deque<std::unique_ptr<Ennemies>>& ennemies) {
     ennemies.erase(it, ennemies.end());
 }
 
-void Ennemies::Update(AcademiaEngine& engine, float elapsedTime)
+void Ennemies::Update(AcademiaEngine& engine, float dt)
 {
-    GetDirection(engine, GetPlayerPosition(engine));
-    AddForce(engine, 50.0f, direction, elapsedTime);
+    if (player)
+    {
+        GetDirection(engine, player->GetPosition());
+    }
 
-    Position += recoilVelocity * elapsedTime;
 
+    // Mouvement de base
+    AddForce(engine, GetSpeed(), direction, dt);
+
+    // Knockback
+    Position += recoilVelocity * dt;
     recoilVelocity *= 0.85f;
 
     if (recoilVelocity.mag2() < 1.0f)
         recoilVelocity = { 0.0f, 0.0f };
 
-
-    if (collider) collider->position = Position;
+    //Collider
+    if (collider)
+        collider->position = Position;
 }

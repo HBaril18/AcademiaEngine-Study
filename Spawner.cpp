@@ -1,5 +1,6 @@
 #include "Spawner.h"
 #include "Ennemies.h"
+#include "LightEnemy.h"
 #include <memory>
 #include <iostream>
 #include <mutex>
@@ -11,14 +12,24 @@
 //                                  //
 /*----------------------------------*/
 
-void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionManager* cm) {
-	// Spawn at the spawner position and associate the player pointer
-	auto enemy = std::make_unique<Ennemies>(Position, 15.0f);
-	if (player) enemy->SetPlayer(player);
-	enemy->InitializeCollision(cm);
-	// Lock to avoid concurrent modification of the deque from other threads
-	{
-		std::lock_guard<std::mutex> lk(ennemies_mutex);
-		ennemies_container.push_back(std::move(enemy));
-	}
+void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionManager* cm)
+{
+    std::unique_ptr<Ennemies> enemy;
+
+    int r = rand() % 2;
+
+    if (r == 0)
+        enemy = std::make_unique<Ennemies>(Position, 15.0f);
+    else if (r == 1)
+        enemy = std::make_unique<LightEnemy>(Position);
+
+    if (player)
+        enemy->SetPlayer(player);
+
+    enemy->InitializeCollision(cm);
+
+    {
+        std::lock_guard<std::mutex> lk(ennemies_mutex);
+        ennemies_container.push_back(std::move(enemy));
+    }
 }
