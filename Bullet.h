@@ -31,6 +31,16 @@ public:
     void SetPreviousPosition(const olc::vf2d& p) { previousPosition = p; }
     olc::vf2d GetPreviousPosition() const { return previousPosition; }
     float GetRadius() const { return radius; }
+    void SetSprite(olc::Sprite* sprite)
+    {
+        spriteSheet = sprite;
+    }
+
+protected:
+    float AnimTimer = 0.0f;
+    int Frame = 0;
+    int MaxFrames = 6;
+    float AnimSpeed = 12.0f; // frames par seconde
 
 private:
     olc::vf2d direction;
@@ -39,4 +49,5 @@ private:
     olc::Pixel Color = olc::Pixel(143, 200, 250);
     float speed = 1200.0f;
 	float radius = 5.0f;
+    olc::Sprite* spriteSheet = nullptr;
 };

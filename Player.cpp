@@ -52,7 +52,7 @@ void Player::ShutdownCollision(CollisionManager* collisionManager) {
     }
 }
 
-void Player::Draw(AcademiaEngine& engine) 
+void Player::Draw(AcademiaEngine& engine)
 {
     const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
     engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color); //Player core
@@ -72,6 +72,7 @@ void Player::SpawnBullet(AcademiaEngine& engine) {
     // Construct the bullet directly in the container to ensure its collider owner is the stored object
     bullets.emplace_back();
     Bullet& bullet = bullets.back();
+    bullet.SetSprite(&engine.BulletSheet);
     bullet.SetPosition(Position); // Set the bullet's initial position to the player's position
     // initialize previous position to same as spawn to avoid invalid sweep tests on first update
     bullet.SetPreviousPosition(Position);

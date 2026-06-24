@@ -38,6 +38,10 @@ public:
 	float SetHealth(float health) { Health = health; return Health; }
 	void SetGameManager(GameManager* gm) { gameManager = gm; }
 	void AddScore(float scoreToAdd);
+	void SetSprite(olc::Sprite* sprite)
+	{
+		spriteSheet = sprite;
+	}
 
 	// Collision
 	Collider* collider = nullptr;
@@ -56,4 +60,6 @@ protected:
 	float Damage = 10.0f;
 	GameManager* gameManager;
 	bool IsAlive() const { return Health > 0.0f; }
+private:
+	olc::Sprite* spriteSheet = nullptr;
 };

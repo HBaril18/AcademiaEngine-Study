@@ -6,6 +6,7 @@
 #include <mutex>
 #include <random>
 
+
 bool GameManager::Initialize(AcademiaEngine* engineContext)
 {
     _Success = true;

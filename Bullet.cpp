@@ -3,12 +3,34 @@
 #include "Collider.h"
 
 void Bullet::Draw(AcademiaEngine& engine) {
+	if (!spriteSheet) return;
+
     olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
-    engine.FillCircle(pixelPos, static_cast<int32_t>(radius), Color);
+    //engine.FillCircle(pixelPos, static_cast<int32_t>(radius), Color);
+	int frameWidth = 160;  // adapte à ton sprite
+	int frameHeight = 141;
+
+	int x = Frame * frameWidth;
+	int y = 0;
+
+	engine.DrawPartialSprite(
+		pixelPos.x - frameWidth / 2,
+		pixelPos.y - frameHeight / 2,
+		spriteSheet,
+		x, y,
+		frameWidth,
+		frameHeight
+	);
+
+
 }
 
 void Bullet::Update(AcademiaEngine& engine, float elapsedTime)
 {
+	AnimTimer += elapsedTime;
+
+	Frame = (int)(AnimTimer * AnimSpeed) % MaxFrames;
+
 	// Save previous position for sweep collision tests
 	previousPosition = Position;
 	Position += direction * speed * elapsedTime;

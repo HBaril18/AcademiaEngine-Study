@@ -20,6 +20,10 @@ public:
     static AcademiaEngine* Instantiate();
     static AcademiaEngine* GetInstance();
 
+    olc::Sprite RedSlimeSheet;
+    olc::Sprite YellowSlimeSheet;
+    olc::Sprite BulletSheet;
+
 private:
 
     void PreUpdate(float elapsedTime);

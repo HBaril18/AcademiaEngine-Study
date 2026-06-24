@@ -19,7 +19,7 @@ class Ennemies : public Character
 {
 public:
     Ennemies();
-    Ennemies(olc::vf2d pos, float radius);
+    Ennemies(olc::vf2d pos, float radius, float maxH);
 
     virtual ~Ennemies();
 
@@ -27,6 +27,12 @@ public:
     virtual void Update(AcademiaEngine& engine, float elapsedTime);
     virtual void Draw(AcademiaEngine& engine) override;
     virtual void TakeDamage(float damage, float elapsedTime);
+    virtual int GetScale() { return Scale; }
+    virtual olc::Sprite* GetSprite(AcademiaEngine& engine)
+    {
+        return &engine.RedSlimeSheet;
+    }
+
 
     // --- Stats virtuelles ---
     virtual float GetSpeed() const { return 60.0f; }
@@ -44,6 +50,7 @@ public:
     void GetDirection(AcademiaEngine& engine, olc::vf2d playerPosition);
     Player* GetPlayer() const { return player; }
     void SetPlayer(Player* p);
+    void SetMaxHealth(float h);
 
     float GetRadius() const { return Radius; }
     float GetHealth() const { return Health; }
@@ -54,10 +61,16 @@ public:
     std::unique_ptr<Collider> collider = nullptr;
     olc::vf2d direction;
     olc::vf2d recoilVelocity;
+
 protected:
     float Radius = 15.0f;
     olc::Pixel Color = olc::Pixel(255, 59, 59);
-    float Health = 50.0f;
+    float Health;
+    float MaxHealth = 50.0f;
+    int Frame = 0;
+    float Timer = 0.0f;
+    int Scale = 2;
+
 
 private:
     Player* player = nullptr;

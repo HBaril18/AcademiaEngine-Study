@@ -19,9 +19,9 @@ void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionMan
     int r = rand() % 2;
 
     if (r == 0)
-        enemy = std::make_unique<Ennemies>(Position, 15.0f);
+        enemy = std::make_unique<Ennemies>(Position, 15.0f, 50.0f);
     else if (r == 1)
-        enemy = std::make_unique<LightEnemy>(Position);
+        enemy = std::make_unique<LightEnemy>(Position, 10.0f, 20.0f);
 
     if (player)
         enemy->SetPlayer(player);

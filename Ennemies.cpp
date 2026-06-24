@@ -5,11 +5,13 @@
 #include <cmath>
 #include <iostream>
 
-Ennemies::Ennemies(olc::vf2d pos, float radius)
+Ennemies::Ennemies(olc::vf2d pos, float radius, float maxH)
 {
     // Initialize object state
     Position = pos;
     Radius = radius;
+    MaxHealth = maxH;
+    Health = MaxHealth;
 
     collider = std::make_unique<Collider>();
 
@@ -30,6 +32,10 @@ void Ennemies::SetPlayer(Player* p)
     player = p;
 }
 
+void Ennemies::SetMaxHealth(float h) {
+    MaxHealth = h;
+}
+
 Ennemies::Ennemies()
 {
     // unique_ptr default null
@@ -38,7 +44,7 @@ Ennemies::Ennemies()
     Position = {0.0f, 0.0f};
     Radius = 15.0f;
     Color = olc::DARK_BLUE;
-    Health = 50.0f;
+    Health = MaxHealth;
 }
 
 void Ennemies::InitializeCollision(CollisionManager* collisionManager)
@@ -74,17 +80,36 @@ Ennemies::~Ennemies()
     // unique_ptr libérera automatiquement
 }
 
-void Ennemies::Draw(AcademiaEngine& engine) {
-    olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
-    // Debug log to ensure draw is called and positions are sane
-    engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color);
 
-	// Draw Healh bar above the enemy
-	engine.FillRect(pixelPos + olc::vi2d(-20, -30), olc::vi2d(40, 5), olc::WHITE);
+
+void Ennemies::Draw(AcademiaEngine& engine)
+{
+    olc::Sprite* sheet = GetSprite(engine);
+    if (!sheet) return;
+
+    int frameWidth = 48;
+    int frameHeight = 48;
+
+    int x = Frame * frameWidth;
+    int y = 0;
+
+    const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
+
+    int scale = GetScale();
+
+    engine.DrawPartialSprite(
+        pixelPos.x - (frameWidth * scale) / 2,
+        pixelPos.y - (frameHeight * scale) / 2,
+        sheet,
+        x, y,
+        frameWidth, frameHeight, scale
+    );
+
+    engine.FillRect(pixelPos + olc::vi2d(-20, -30), { 40, 5 }, olc::WHITE);
+
     if (GetHealth() > 0) {
-        int healthWidth = static_cast<int>(40 * (GetHealth() / 50.0f));
-		olc::Pixel healthColor = olc::Pixel(255, 0, 0);
-        engine.FillRect(pixelPos + olc::vi2d(-20, -30), olc::vi2d(healthWidth, 5), healthColor);
+        int healthWidth = (int)(40 * (Health / MaxHealth));
+        engine.FillRect(pixelPos + olc::vi2d(-20, -30), { healthWidth, 5 }, olc::RED);
     }
 }
 
@@ -141,6 +166,15 @@ void Ennemies::Update(AcademiaEngine& engine, float dt)
     if (player)
     {
         GetDirection(engine, player->GetPosition());
+    }
+
+
+    Timer += dt;
+
+    if (Timer > 0.2f)
+    {
+        Frame = (Frame + 1) % 4; // 4 frames animation
+        Timer = 0.f;
     }
 
 

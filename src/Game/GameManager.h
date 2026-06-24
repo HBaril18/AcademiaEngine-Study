@@ -21,7 +21,7 @@
 class AcademiaEngine;
 class Spawner;
 
-enum class ESpawnerType
+enum class EEnemyType
 {
     Basic,
     Fast,
@@ -76,6 +76,9 @@ public:
     const olc::HWButton moveDownButton;
     const olc::HWButton jumpButton;
     const olc::HWButton sneakButton;
+
+protected:
+
 
 private:
 

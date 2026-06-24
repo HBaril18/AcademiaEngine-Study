@@ -14,6 +14,14 @@ bool AcademiaEngine::OnUserCreate()
     _GameManager = std::make_shared<GameManager>();
     _GameManager->Initialize(this);
 
+    SetPixelMode(olc::Pixel::ALPHA);
+    RedSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    YellowSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    BulletSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    RedSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/RedSlimeNoBG.png");
+    YellowSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/YellowSlime.png");
+    BulletSheet.LoadFromFile("assets/Sprite/Bullet/Bullet.png");
+
     return true;
 }
 

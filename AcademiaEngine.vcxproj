@@ -160,6 +160,7 @@
     <ClCompile Include="CollisionManager.cpp" />
     <ClCompile Include="Ennemies.cpp" />
     <ClCompile Include="Explosion.cpp" />
+    <ClCompile Include="LightEnemy.cpp" />
     <ClCompile Include="PeriodicTimer.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="PowerUp.cpp" />
@@ -187,9 +188,6 @@
     <ClInclude Include="external\olc\olcPixelGameEngine.h" />
     <ClInclude Include="src\Engine\AcademiaEngine.h" />
     <ClInclude Include="src\Utils.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="temp_request.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
