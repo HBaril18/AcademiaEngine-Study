@@ -15,10 +15,14 @@ bool AcademiaEngine::OnUserCreate(){
     YellowSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     BulletSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     PlayerSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    PowerUpSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    EyeChtulhuSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     RedSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/RedSlimeNoBG.png");
     YellowSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/YellowSlime.png");
     BulletSheet.LoadFromFile("assets/Sprite/SpaceShooterShipConstructor/PNG/Bullets/02.png");
     PlayerSheet.LoadFromFile("assets/Sprite/SpaceShooterShipConstructor/PNG/Example/05.png");
+    PowerUpSheet.LoadFromFile("assets/Sprite/Effect/ConfusionEffect/Spritesheets/ConfusionEffect_Sheet_64x64.png");
+    EyeChtulhuSheet.LoadFromFile("");
 
     _GameManager = std::make_shared<GameManager>(this);
     _GameManager->Initialize(this);

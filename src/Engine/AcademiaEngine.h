@@ -24,6 +24,8 @@ public:
     olc::Sprite YellowSlimeSheet;
     olc::Sprite BulletSheet;
     olc::Sprite PlayerSheet;
+    olc::Sprite PowerUpSheet;
+    olc::Sprite EyeChtulhuSheet;
 
 private:
 
