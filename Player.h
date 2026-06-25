@@ -19,10 +19,15 @@ struct Collider;
 class Player : public Character
 {
 public:
+	Player(AcademiaEngine& engine);
+	virtual ~Player();
+
 	float damageCooldown = 0.0f;     // temps restant
 	float damageDelay = 0.45f;        // délai entre dégâts (en secondes)
 	bool hasExploded = false;
 	olc::vf2d knockbackVelocity = { 0.0f, 0.0f };
+	olc::Sprite* sprite = nullptr;
+	olc::Decal* decal = nullptr;
 
     void Draw(AcademiaEngine& engine) override;
 	void DrawCursor(AcademiaEngine& engine, olc::vf2d cursorWorldPos);
@@ -38,10 +43,11 @@ public:
 	float SetHealth(float health) { Health = health; return Health; }
 	void SetGameManager(GameManager* gm) { gameManager = gm; }
 	void AddScore(float scoreToAdd);
-	void SetSprite(olc::Sprite* sprite)
+	virtual olc::Sprite* GetSprite(AcademiaEngine& engine)
 	{
-		spriteSheet = sprite;
+		return &engine.PlayerSheet;
 	}
+
 
 	// Collision
 	Collider* collider = nullptr;
@@ -60,6 +66,8 @@ protected:
 	float Damage = 10.0f;
 	GameManager* gameManager;
 	bool IsAlive() const { return Health > 0.0f; }
+	float Scale = 0.5f;
 private:
 	olc::Sprite* spriteSheet = nullptr;
+	AcademiaEngine* _Engine;
 };

@@ -9,6 +9,14 @@
 //                                  //
 /*----------------------------------*/
 
+Player::Player(AcademiaEngine& engine)
+{
+    _Engine = &engine;
+    sprite = &_Engine->PlayerSheet;
+    decal = new olc::Decal(sprite);
+
+}
+
 void Player::Update(AcademiaEngine& engine, float elapsedTime) {
     if (damageCooldown > 0.0f) {
         damageCooldown -= elapsedTime;
@@ -54,18 +62,24 @@ void Player::ShutdownCollision(CollisionManager* collisionManager) {
 
 void Player::Draw(AcademiaEngine& engine)
 {
-    const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
-    engine.FillCircle(pixelPos, static_cast<int32_t>(Radius), Color); //Player core
-    
+    olc::vf2d imageDimension = { (float)sprite->width, (float)sprite->height };
     olc::vf2d direction = GetPlayerDirection(engine); //Cursor direction
     direction = direction.norm();
-    
-    const float length = Radius + 20; //Length of the barrel
-    
-    const olc::vf2d endWorldPos = Position + direction * length;
-    const olc::vi2d endPixelPos = engine.ConvertWorldPositionToPixels(endWorldPos);
-    
-    engine.DrawLine(pixelPos.x, pixelPos.y, endPixelPos.x, endPixelPos.y, Color);
+
+    const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
+
+    constexpr float PI = 3.14159265f;
+    // Adjust if your sprite faces up instead of right:
+
+    float angle = atan2f(-direction.y, direction.x) + PI / 2;
+
+    engine.DrawRotatedDecal(
+        { (float)pixelPos.x, (float)pixelPos.y },
+        decal,
+        angle,
+        { imageDimension.x / 2, imageDimension.y / 2 }, // center of sprite
+        { Scale, Scale }
+    );
 }
 
 void Player::SpawnBullet(AcademiaEngine& engine) {
@@ -74,6 +88,9 @@ void Player::SpawnBullet(AcademiaEngine& engine) {
     Bullet& bullet = bullets.back();
     bullet.SetSprite(&engine.BulletSheet);
     bullet.SetPosition(Position); // Set the bullet's initial position to the player's position
+    //Sprite and Decal
+    bullet.sprite = &_Engine->BulletSheet;
+    bullet.decal = new olc::Decal(bullet.sprite);
     // initialize previous position to same as spawn to avoid invalid sweep tests on first update
     bullet.SetPreviousPosition(Position);
 
@@ -156,4 +173,10 @@ void Player::AddScore(float scoreToAdd) {
     if (gameManager) {
         gameManager->AddScore(scoreToAdd);
     }
+}
+
+Player::~Player()
+{
+    ShutdownCollision(collisionManager);
+    delete decal;
 }

@@ -35,6 +35,8 @@ public:
     {
         spriteSheet = sprite;
     }
+    olc::Sprite* sprite = nullptr;
+    olc::Decal* decal = nullptr;
 
 protected:
     float AnimTimer = 0.0f;

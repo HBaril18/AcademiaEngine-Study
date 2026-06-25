@@ -10,6 +10,7 @@
 class Character : public GameObject
 {
 public:
+    Character() = default;
     virtual ~Character() = default;
     virtual void AddForce(AcademiaEngine& engine) {}
 

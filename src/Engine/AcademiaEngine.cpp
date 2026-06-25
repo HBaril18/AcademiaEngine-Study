@@ -9,18 +9,19 @@ AcademiaEngine::AcademiaEngine()
     sAppName = "AcademiaEngine";
 }
 
-bool AcademiaEngine::OnUserCreate()
-{
-    _GameManager = std::make_shared<GameManager>();
-    _GameManager->Initialize(this);
-
+bool AcademiaEngine::OnUserCreate(){
     SetPixelMode(olc::Pixel::ALPHA);
     RedSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     YellowSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     BulletSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    PlayerSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     RedSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/RedSlimeNoBG.png");
     YellowSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/YellowSlime.png");
-    BulletSheet.LoadFromFile("assets/Sprite/Bullet/Bullet.png");
+    BulletSheet.LoadFromFile("assets/Sprite/SpaceShooterShipConstructor/PNG/Bullets/02.png");
+    PlayerSheet.LoadFromFile("assets/Sprite/SpaceShooterShipConstructor/PNG/Example/05.png");
+
+    _GameManager = std::make_shared<GameManager>(this);
+    _GameManager->Initialize(this);
 
     return true;
 }

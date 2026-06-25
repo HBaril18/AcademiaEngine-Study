@@ -46,7 +46,7 @@ class GameManager
 {
 
 public:
-
+    GameManager(AcademiaEngine* engine);
     bool Initialize(AcademiaEngine* engineContext);
     void SetUpControl(AcademiaEngine* engineContext);
     void Update(float elapsedTime);
@@ -121,4 +121,3 @@ private:
 #endif
 
 };
-

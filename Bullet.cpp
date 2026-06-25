@@ -3,26 +3,23 @@
 #include "Collider.h"
 
 void Bullet::Draw(AcademiaEngine& engine) {
-	if (!spriteSheet) return;
+	olc::vf2d imageDimension = { (float)sprite->width, (float)sprite->height };
+	olc::vf2d direction = GetDirection(); //Cursor direction
+	direction = direction.norm();
 
-    olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
-    //engine.FillCircle(pixelPos, static_cast<int32_t>(radius), Color);
-	int frameWidth = 160;  // adapte à ton sprite
-	int frameHeight = 141;
+	const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
 
-	int x = Frame * frameWidth;
-	int y = 0;
+	constexpr float PI = 3.14159265f;
+	// Adjust if your sprite faces up instead of right:
 
-	engine.DrawPartialSprite(
-		pixelPos.x - frameWidth / 2,
-		pixelPos.y - frameHeight / 2,
-		spriteSheet,
-		x, y,
-		frameWidth,
-		frameHeight
+	float angle = atan2f(-direction.y, direction.x) + PI / 2;
+
+	engine.DrawRotatedDecal(
+		{ (float)pixelPos.x, (float)pixelPos.y },
+		decal,
+		angle,
+		{ imageDimension.x / 2, imageDimension.y / 2 } // center of sprite
 	);
-
-
 }
 
 void Bullet::Update(AcademiaEngine& engine, float elapsedTime)

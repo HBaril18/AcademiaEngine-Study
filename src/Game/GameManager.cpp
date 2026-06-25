@@ -7,19 +7,25 @@
 #include <random>
 
 
+GameManager::GameManager(AcademiaEngine* engine)
+    : _Player(*engine)
+{
+    _EngineContext = engine;
+}
+
+
 bool GameManager::Initialize(AcademiaEngine* engineContext)
 {
     _Success = true;
-    _EngineContext = engineContext;
     if (!_EngineContext) _Success = false;
 
 #ifdef ACADEMIA_EXAMPLE
     try {
         _Player.SetGameManager(this);
+        _Player.GetSprite(*_EngineContext);
         _Player.SetPosition(olc::vf2d(0.0f, 0.0f));
         // Setup collision manager references
         _CollisionManager.SetPlayer(&_Player);
-
         // Initialize player collider via Player API
         _Player.InitializeCollision(&_CollisionManager);
     }
