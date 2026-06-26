@@ -5,6 +5,7 @@
 #include "Player.h"
 #include "Ennemies.h"
 #include "Bullet.h"
+#include "PowerUp.h"
 #include <memory>
 
 void CollisionManager::RegisterCollider(Collider* collider)
@@ -78,6 +79,25 @@ std::vector<Ennemies*> CollisionManager::GetEnnemies()
 	return result;
 }
 
+std::vector<PowerUp*> CollisionManager::GetPowerUp()
+{
+	std::vector<PowerUp*> result;
+	if (powerUp) {
+		for (auto& e : *powerUp) {
+			result.push_back(e.get());
+		}
+		return result;
+	}
+
+	// fallback: infer enemies from colliders registered
+	for (auto* c : colliders) {
+		if (c && c->owner && c->layer == 2) {
+			result.push_back(static_cast<PowerUp*>(c->owner));
+		}
+	}
+	return result;
+}
+
 void CollisionManager::UnregisterCollider(Collider* collider)
 {
 	// Implementation for unregistering a collider
@@ -109,7 +129,7 @@ void CollisionManager::Update(float elapsedTime)
 
 			const bool collisionMatrix[4][4] = {
 				//0     1      2      3
-				{false, false, false, false}, // 0 unused
+				{false, false, false, false}, // 0 PowerUp
 				{false, false, true,  false}, // 1 Player
 				{false, true,  false, true }, // 2 Enemy
 				{false, false, true,  false}  // 3 Bullet
@@ -200,6 +220,19 @@ void CollisionManager::Update(float elapsedTime)
 						}
 						if (bullet) {
 							RemoveBullet(bullet);
+						}
+					}
+					// Player-PowerUp
+					else if ((a == 1 && b == 0) || (a == 0 && b == 1)) {
+						Player* player = nullptr;
+						PowerUp* powerUp = nullptr;
+						if (a == 2) {
+							player = static_cast<Player*>(colliderA->owner);
+							powerUp = static_cast<PowerUp*>(colliderB->owner);
+						}
+						else {
+							powerUp = static_cast<PowerUp*>(colliderB->owner);
+							player = static_cast<Player*>(colliderA->owner);
 						}
 					}
 				}
