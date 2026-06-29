@@ -38,6 +38,8 @@ public:
 	// schedule a bullet to be removed (safe during update)
 	void RemoveBullet(Bullet* b);
 
+	void RemoveColliderPowerUp(PowerUp* p);
+
 protected:
 	std::vector<Collider*> colliders;
 	// pending removals for bullets to avoid modifying colliders during iteration
@@ -48,4 +50,5 @@ private:
 	std::deque<std::unique_ptr<Ennemies>>* ennemies = nullptr;
 	std::deque<Bullet>* bullets = nullptr;
 	std::deque<std::unique_ptr<PowerUp>>* powerUp = nullptr;
+	std::vector<PowerUp*> pendingPowerUpRemovals;
 };

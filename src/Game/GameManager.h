@@ -42,6 +42,13 @@ enum class EDifficultyLevel
     Hard
 };
 
+struct PowerUpNotification
+{
+    std::string text;
+    float timer = 2.0f;
+    float maxTimer = 2.0f;
+};
+
 class GameManager
 {
 
@@ -61,7 +68,11 @@ public:
 	float GetScore() const { return _Score; }
     void SetScore(float score) { _Score = score; }
     bool SetupSpawner();
+    std::vector<std::unique_ptr<PowerUp>>& GetPowerUpList() { return _PowerUps; }
+    void AddPowerUpNotification(const std::string& text);
     ~GameManager();
+
+    void DrawPowerUpUI();
 
     //Color used for UI
     const olc::Pixel bgColorNavyBlue = olc::Pixel(18, 52, 74);
@@ -76,6 +87,8 @@ public:
     const olc::HWButton moveDownButton;
     const olc::HWButton jumpButton;
     const olc::HWButton sneakButton;
+
+    std::vector<PowerUpNotification> _PowerUpNotifications;
 
 protected:
 
@@ -118,6 +131,7 @@ private:
     // one atomic flag per spawner to request spawn from the main thread
     // std::atomic<bool> is not copyable on MSVC; store them via unique_ptr to avoid vector copy issues
     std::vector<std::unique_ptr<std::atomic<bool>>> _SpawnRequested;
+    std::vector<std::unique_ptr<PowerUp>> _PowerUps;
 #endif
 
 };

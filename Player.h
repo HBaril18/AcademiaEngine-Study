@@ -47,7 +47,9 @@ public:
 	{
 		return &engine.PlayerSheet;
 	}
-
+	void SetSpeedMultiplier(float s) { SpeedMultiplier = s; }
+	void SetDamageMultiplier(float d) { DamageMultiplier = d; }
+	void AddShield() { Shield += 1; }
 
 	// Collision
 	Collider* collider = nullptr;
@@ -59,15 +61,18 @@ public:
 	CollisionManager* collisionManager = nullptr;
 
 protected:
+	float SpeedMultiplier = 1.0f;
+	float DamageMultiplier = 1.0f;
+	int Shield = 0;
     float Radius = 20.0f;
 	olc::Pixel Color = olc::Pixel(46, 230, 214);
     std::deque<Bullet> bullets;
 	float Health = 100.0f;
 	float Damage = 10.0f;
-	GameManager* gameManager;
+	GameManager* gameManager = nullptr;
 	bool IsAlive() const { return Health > 0.0f; }
 	float Scale = 0.5f;
 private:
 	olc::Sprite* spriteSheet = nullptr;
-	AcademiaEngine* _Engine;
+	AcademiaEngine* _Engine = nullptr;;
 };

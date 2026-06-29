@@ -4,9 +4,11 @@
 #include "Collider.h"
 #include "CollisionManager.h"
 #include "src/Game/GameManager.h"
+#include "PowerUp.h"
 
 // Forward declare CollisionManager to avoid including its header here
 class CollisionManager;
+class GameManager;
 
 /*----------------------------------*/
 //                                  //
@@ -33,6 +35,7 @@ public:
         return &engine.RedSlimeSheet;
     }
 
+    void SetGameManager(GameManager* gm) { gameManager = gm; }
 
     // --- Stats virtuelles ---
     virtual float GetSpeed() const { return 60.0f; }
@@ -44,13 +47,14 @@ public:
 
     void AddForce(AcademiaEngine& engine, float force, olc::vf2d direction, float elapsedTime);
 
-    static void RemoveEnnemie(std::deque<std::unique_ptr<Ennemies>>& ennemies);
+    static void RemoveEnnemie(std::deque<std::unique_ptr<Ennemies>>& ennemies, AcademiaEngine& engine);
 
     const olc::vf2d& GetPlayerPosition(AcademiaEngine& engine) const;
     void GetDirection(AcademiaEngine& engine, olc::vf2d playerPosition);
     Player* GetPlayer() const { return player; }
     void SetPlayer(Player* p);
     void SetMaxHealth(float h);
+    void SpawnPowerUp(AcademiaEngine& engine);
 
     float GetRadius() const { return Radius; }
     float GetHealth() const { return Health; }
@@ -70,7 +74,6 @@ protected:
     int Frame = 0;
     float Timer = 0.0f;
     int Scale = 2;
-
 
 private:
     Player* player = nullptr;

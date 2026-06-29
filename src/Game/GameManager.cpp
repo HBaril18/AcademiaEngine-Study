@@ -102,23 +102,58 @@ void GameManager::Update(float elapsedTime)
     // Keep bullets updating/drawing above so player can shoot UI buttons on the start screen
     if (_IsGameStarted && !_IsGameOver) {
         // iterate enemies for each spawner (each spawner protects its own container)
-        for (auto& sp : _Spawners) {
+        for (auto& sp : _Spawners)
+        {
             std::lock_guard<std::mutex> lk(sp->GetEnnemiesMutex());
             auto& enemys = sp->GetEnnemies();
+
             for (auto& enemyPtr : enemys)
             {
                 auto& enemy = *enemyPtr;
+                enemy.SetGameManager(this);
                 enemy.Update(*_EngineContext, elapsedTime);
                 enemy.Draw(*_EngineContext);
-                
-                if (enemy.GetHealth() <= 0.0f && !enemy.hasExploded) {
-                    _Explosions.emplace_back(enemy.GetPosition(), ExplosionType::Enemy); 
+
+                if (enemy.GetHealth() <= 0.0f && !enemy.hasExploded)
+                {
+                    _Explosions.emplace_back(enemy.GetPosition(), ExplosionType::Enemy);
                 }
             }
-            Ennemies::RemoveEnnemie(enemys);
-            _Player.AddScore(10.0f * enemys.size() * elapsedTime); // small score bonus for surviving more enemies
+            Ennemies::RemoveEnnemie(enemys, *_EngineContext);
+            _Player.AddScore(10.0f * enemys.size() * elapsedTime);
         }
 
+        for (auto& p : _PowerUps)
+        {
+            p->SetGameManager(this);
+            p->Update(*_EngineContext, elapsedTime);
+            p->Draw(*_EngineContext);
+        }
+
+        _PowerUps.erase(
+            std::remove_if(
+                _PowerUps.begin(),
+                _PowerUps.end(),
+                [](const std::unique_ptr<PowerUp>& p)
+                {
+                    return p->markedForRemoval;
+                }),
+            _PowerUps.end());
+
+        for (auto& n : _PowerUpNotifications)
+        {
+            n.timer -= elapsedTime;
+        }
+
+        _PowerUpNotifications.erase(
+            std::remove_if(
+                _PowerUpNotifications.begin(),
+                _PowerUpNotifications.end(),
+                [](const PowerUpNotification& n)
+                {
+                    return n.timer <= 0.0f;
+                }),
+            _PowerUpNotifications.end());
 
         if (!_PlayerDying)
         {
@@ -172,6 +207,7 @@ void GameManager::Update(float elapsedTime)
         _EngineContext->FillRect(healthBarPos, olc::vi2d(healthWidth, 5), olc::GREEN);
     }
     DrawUI();
+    DrawPowerUpUI();
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
     EndGameLogic(elapsedTime);
 #endif
@@ -201,6 +237,43 @@ bool GameManager::Uninitialize() {
 GameManager::~GameManager()
 {
 	Uninitialize();
+}
+
+void GameManager::AddPowerUpNotification(const std::string& text)
+{
+    _PowerUpNotifications.push_back({
+        text,
+        2.0f,
+        2.0f
+        });
+}
+
+//Draw the UI of the PowerUp just collected
+//➥ Heal
+//➥ Speed
+//➥ Damage
+//➥ Shield
+void GameManager::DrawPowerUpUI()
+{
+    int y = 400;
+
+    for (auto& n : _PowerUpNotifications)
+    {
+        float alpha = n.timer / n.maxTimer;
+
+        olc::Pixel color = alertUIYellow;
+        color.a = static_cast<uint8_t>(255.0f * alpha);
+
+        _EngineContext->DrawString(
+            _EngineContext->ScreenWidth() / 2,
+            y,
+            n.text,
+            color,
+            2
+        );
+
+        y += 24;
+    }
 }
 
 //Draw the Main UI of the game.

@@ -30,6 +30,21 @@ void CollisionManager::RemoveBullet(Bullet* b)
 	pendingBulletRemovals.push_back(b);
 }
 
+void CollisionManager::RemoveColliderPowerUp(PowerUp* p)
+{
+	if (!p) return;
+
+	if (p->collider)
+	{
+		if (!p->collider->enabled)
+			return;
+
+		p->collider->enabled = false;
+	}
+
+	pendingPowerUpRemovals.push_back(p);
+}
+
 Player* CollisionManager::GetPlayer()
 {
 	if (player) return player;
@@ -129,8 +144,8 @@ void CollisionManager::Update(float elapsedTime)
 
 			const bool collisionMatrix[4][4] = {
 				//0     1      2      3
-				{false, false, false, false}, // 0 PowerUp
-				{false, false, true,  false}, // 1 Player
+				{false, true, false, false}, // 0 PowerUp
+				{true, false, true,  false}, // 1 Player
 				{false, true,  false, true }, // 2 Enemy
 				{false, false, true,  false}  // 3 Bullet
 			};
@@ -224,15 +239,23 @@ void CollisionManager::Update(float elapsedTime)
 					}
 					// Player-PowerUp
 					else if ((a == 1 && b == 0) || (a == 0 && b == 1)) {
+						std::cout << "Toucher PowerUp";
 						Player* player = nullptr;
 						PowerUp* powerUp = nullptr;
-						if (a == 2) {
+						if (a == 1){
 							player = static_cast<Player*>(colliderA->owner);
 							powerUp = static_cast<PowerUp*>(colliderB->owner);
 						}
-						else {
-							powerUp = static_cast<PowerUp*>(colliderB->owner);
-							player = static_cast<Player*>(colliderA->owner);
+						else{
+							powerUp = static_cast<PowerUp*>(colliderA->owner);
+							player = static_cast<Player*>(colliderB->owner);
+						}
+						if (powerUp && player) {
+							powerUp->Apply(*player);
+							powerUp->collected = true;
+							powerUp->markedForRemoval = true;
+							RemoveColliderPowerUp(powerUp);
+							//powerUp->ShutdownCollision(this);
 						}
 					}
 				}
@@ -276,4 +299,14 @@ void CollisionManager::Update(float elapsedTime)
 		}
 		pendingBulletRemovals.clear();
 	}
+
+	for (auto* p : pendingPowerUpRemovals)
+	{
+		if (!p)
+			continue;
+
+		p->ShutdownCollision(this);
+	}
+
+	pendingPowerUpRemovals.clear();
 }

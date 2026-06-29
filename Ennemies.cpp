@@ -155,10 +155,43 @@ void Ennemies::TakeDamage(float damage, float elapsedTime) {
     }
 }
 
-void Ennemies::RemoveEnnemie(std::deque<std::unique_ptr<Ennemies>>& ennemies) {
-    auto it = std::remove_if(ennemies.begin(), ennemies.end(),
-        [](const std::unique_ptr<Ennemies>& e) { return e->Health <= 0; });
-    ennemies.erase(it, ennemies.end());
+void Ennemies::RemoveEnnemie(
+    std::deque<std::unique_ptr<Ennemies>>& ennemies,
+    AcademiaEngine& engine)
+{
+    ennemies.erase(
+        std::remove_if(ennemies.begin(), ennemies.end(),
+            [&](const std::unique_ptr<Ennemies>& e)
+            {
+                if (e->Health <= 0)
+                {
+                    e->SpawnPowerUp(engine);
+                    return true;
+                }
+                return false;
+            }),
+        ennemies.end()
+    );
+}
+
+void Ennemies::SpawnPowerUp(AcademiaEngine& engine) {
+    auto p = std::make_unique<PowerUp>(Position, 12.0f, PowerUpType::Heal);
+
+    p->sprite = &engine.PowerUpSheet;
+    p->decal = new olc::Decal(p->sprite);
+
+    p->SetPosition(Position);
+
+    if (collisionManager)
+    {
+        p->InitializeCollision(collisionManager);
+    }
+
+    if (p->collider)
+    {
+        p->collider->position = p->GetPosition();
+    }
+    gameManager->GetPowerUpList().push_back(std::move(p));
 }
 
 void Ennemies::Update(AcademiaEngine& engine, float dt)

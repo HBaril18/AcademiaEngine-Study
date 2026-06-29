@@ -4,32 +4,52 @@ PowerUp::PowerUp(olc::vf2d pos, float radius, PowerUpType t) {
     Position = pos;
     Radius = radius;
     type = t;
+}
 
-    collider = std::make_unique<Collider>();
-
+void PowerUp::InitializeCollision(CollisionManager* collisionManager)
+{
+    this->collisionManager = collisionManager;
+    if (!collider) {
+        collider = std::make_unique<Collider>();
+    }
+    // ensure collider fields are up-to-date
     collider->owner = this;
     collider->position = Position;
     collider->size = Radius;
-    collider->layer = 0;
+    collider->layer = 0; // Enemy layer
     collider->type = Collider::EColliderType::Circle;
     collider->enabled = true;
-
-    if (collisionManager) {
-        collisionManager->RegisterCollider(collider.get());
-    }
+    if (collisionManager) collisionManager->RegisterCollider(collider.get());
 }
 
-void PowerUp::Draw(AcademiaEngine& engine) {
+void PowerUp::ShutdownCollision(CollisionManager* collisionManager)
+{
+    if (collider) {
+        if (collisionManager) collisionManager->UnregisterCollider(collider.get());
+        collider.reset();
+    }
+    this->collisionManager = nullptr;
+}
+
+void PowerUp::Draw(AcademiaEngine& engine)
+{
     olc::Sprite* sheet = GetSprite(engine);
     if (!sheet) return;
 
-    int frameWidth = Radius;
-    int frameHeight = Radius;
+    constexpr int columns = 4;
+    constexpr int rows = 4;
 
-    int x = Frame * frameWidth;
-    int y = 0;
+    int frameWidth = sheet->width / columns;
+    int frameHeight = sheet->height / rows;
 
-    const olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
+    int frameX = Frame % columns;
+    int frameY = Frame / columns;
+
+    int x = frameX * frameWidth;
+    int y = frameY * frameHeight;
+
+    const olc::vi2d pixelPos =
+        engine.ConvertWorldPositionToPixels(Position);
 
     int scale = GetScale();
 
@@ -37,11 +57,58 @@ void PowerUp::Draw(AcademiaEngine& engine) {
         pixelPos.x - (frameWidth * scale) / 2,
         pixelPos.y - (frameHeight * scale) / 2,
         sheet,
-        x, y,
-        frameWidth, frameHeight, scale
+        x,
+        y,
+        frameWidth,
+        frameHeight,
+        scale
     );
 }
 
+void PowerUp::Apply(Player& player)
+{
+    switch (type)
+    {
+    case PowerUpType::Heal:
+        player.SetHealth(
+            std::min(player.GetHealth() + 10.0f, 100.0f)
+        );
+
+        break;
+
+    case PowerUpType::Speed:
+        player.SetSpeedMultiplier(1.5f);
+        break;
+
+    case PowerUpType::Damage:
+        player.SetDamageMultiplier(2.0f);
+        break;
+
+    case PowerUpType::Shield:
+        player.AddShield();
+        break;
+    }
+}
+
 void PowerUp::Update(AcademiaEngine& engine, float elapsedTime) {
-	
+    if (collected)
+    {
+        gameManager->AddPowerUpNotification(
+            std::to_string(GetType())
+        );
+    }
+
+    _animationTimer += elapsedTime;
+
+    if (_animationTimer >= 0.1f)
+    {
+        _animationTimer = 0.0f;
+
+        Frame++;
+        Frame %= 16;   // 4x4 = 16 frames
+    }
+
+    //Collider
+    if (collider)
+        collider->position = Position;
 }
