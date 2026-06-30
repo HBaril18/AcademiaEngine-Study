@@ -60,7 +60,10 @@ void GameManager::Update(float elapsedTime)
     const olc::HWButton escapeButton = _EngineContext->GetKey(escapeKey);
 
     // This is very good, I don't like input code, it looks ugly I find :p, but there is no better way than this. Good Job :) 
-    if (escapeButton.bPressed) { exit(0); }
+    if (escapeButton.bPressed) { 
+        StartExitAnimation();
+
+    }
     if (moveRightButton.bHeld) { x += 1.0f; }
     if (moveLeftButton.bHeld)  { x -= 1.0f; }
     if (moveUpButton.bHeld)    { y += 1.0f; }
@@ -100,7 +103,7 @@ void GameManager::Update(float elapsedTime)
 
     // Only run enemy updates, player movement and collision during active gameplay
     // Keep bullets updating/drawing above so player can shoot UI buttons on the start screen
-    if (_IsGameStarted && !_IsGameOver) {
+    if (_GameState == EGameState::Playing) {
         // iterate enemies for each spawner (each spawner protects its own container)
         for (auto& sp : _Spawners)
         {
@@ -155,13 +158,10 @@ void GameManager::Update(float elapsedTime)
                 }),
             _PowerUpNotifications.end());
 
-        if (!_PlayerDying)
-        {
-            _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
-            _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
-            _Player.Update(*_EngineContext, elapsedTime);
-            _Player.Draw(*_EngineContext);
-        }
+        _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
+        _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
+        _Player.Update(*_EngineContext, elapsedTime);
+        _Player.Draw(*_EngineContext);
 
 
         // Now that bullets and enemies have moved this frame, run collision detection
@@ -201,8 +201,8 @@ void GameManager::Update(float elapsedTime)
     // Draw Player health bar
     _Player.GetPosition();
     olc::vi2d healthBarPos = _EngineContext->ConvertWorldPositionToPixels(_Player.GetPosition()) + olc::vi2d(-20, -30);
-    if (_IsGameStarted) _EngineContext->FillRect(healthBarPos, olc::vi2d(40, 5), olc::WHITE);
-    if (_Player.GetHealth() > 0 && _IsGameStarted) {
+    if (_GameState == EGameState::Playing) _EngineContext->FillRect(healthBarPos, olc::vi2d(40, 5), olc::WHITE);
+    if (_Player.GetHealth() > 0 && _GameState == EGameState::Playing) {
         int healthWidth = static_cast<int>(40 * (_Player.GetHealth() / 100.0f));
         _EngineContext->FillRect(healthBarPos, olc::vi2d(healthWidth, 5), olc::GREEN);
     }
@@ -211,6 +211,24 @@ void GameManager::Update(float elapsedTime)
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
     EndGameLogic(elapsedTime);
 #endif
+}
+
+void GameManager::StartExitAnimation()
+{
+    _FallingPixels.clear();
+
+    for (int y = 0; y < _EngineContext->ScreenHeight(); y++)
+    {
+        for (int x = 0; x < _EngineContext->ScreenWidth(); x++)
+        {
+            FallingPixel p;
+            p.pos = { x, y };
+            p.color = _EngineContext->GetDrawTarget()->GetPixel(x, y);
+            p.velocity = 0.0f;
+
+            _FallingPixels.push_back(p);
+        }
+    }
 }
 
 //Clear all the pointer after the game close to clear the memory.
@@ -386,7 +404,7 @@ bool GameManager::SetupSpawner() {
 //➥ HARD button
 //➥ Redrawing of OPTIONS button and "Press SPACE to start" text
 void GameManager::StartGameLogic(float elapsedTime) {
-    if (!_IsGameStarted) {
+    if (_GameState == EGameState::Menu) {
 		_SpawnersPaused = true; // ensure spawners are paused on start screen
         _EngineContext->Clear(mainUIOrange);
 
@@ -436,7 +454,7 @@ void GameManager::StartGameLogic(float elapsedTime) {
 
             // Wait for restart input each frame, allow fade-out when restarting
             if (_EngineContext->GetKey(olc::Key::SPACE).bPressed) {
-                _IsGameStarted = true;
+                _GameState = EGameState::Playing;
                 // start the game once
                 StartGame();
                 
@@ -448,15 +466,15 @@ void GameManager::StartGameLogic(float elapsedTime) {
 void GameManager::EndGameLogic(float elapsedTime) {
     // Do not reset _IsGameStarted here - keep start state until explicit restart
     // Only increase score during active gameplay (not on start screen or when game over)
-    if (_IsGameStarted && !_IsGameOver && _Player.GetHealth() > 0) {
+    if (_GameState == EGameState::Playing && _Player.GetHealth() > 0) {
         // Increase score over time, faster if player is doing well
         float scoreIncrement = elapsedTime * 5.0f; // base increment
         AddScore(scoreIncrement);
     }
 
     // Non-blocking game over handling with fade transition and spawner pause
-    if (!_PlayerDying && _Player.GetHealth() <= 0) {
-        _PlayerDying = true;
+    if (_GameState != EGameState::GameOver && _Player.GetHealth() <= 0) {
+        _GameState = EGameState::GameOver;
         _SpawnersPaused = true;
 
         if (!_Player.hasExploded) {
@@ -468,7 +486,7 @@ void GameManager::EndGameLogic(float elapsedTime) {
     }
 
 
-    if (_PlayerDying)
+    if (_GameState == EGameState::GameOver)
     {
         bool explosionStillRunning = false;
 
@@ -483,16 +501,15 @@ void GameManager::EndGameLogic(float elapsedTime) {
 
         if (!explosionStillRunning)
         {
-            _IsGameOver = true;
+            _GameState = EGameState::GameOver;
             _IsFadingIn = true;
             _GameOverFade = 0.0f;
-            _PlayerDying = false;
         }
     }
 
 
 
-    if (_IsGameOver) {
+    if (_GameState == EGameState::GameOver) {
         // advance fade in
         if (_IsFadingIn) {
             _GameOverFade += elapsedTime / _GameOverFadeDuration;
@@ -531,12 +548,10 @@ void GameManager::EndGameLogic(float elapsedTime) {
                 _IsFadingOut = false;
                 // finish game-over state and return to start screen
                 // Reset transient gameplay state so EndGameLogic won't immediately re-enter GAME OVER
+                _GameState = EGameState::Menu;
                 StartGame(); // clears bullets/enemies and restores player health
                 // but keep spawners paused while on the start screen
                 _SpawnersPaused = true;
-                _IsGameOver = false;
-                // ensure start screen is active (wait for SPACE to start)
-                _IsGameStarted = false;
             }
         }
     }
@@ -555,8 +570,6 @@ void GameManager::StartGame() {
 
     _EngineContext->Clear(bgColorNavyBlue);
 
-    // Reset death state
-    _PlayerDying = false;
     _Player.hasExploded = false;
     _GameOverTimer = 0.0f;
 
@@ -586,7 +599,6 @@ void GameManager::StartGame() {
 
     // Resume spawners and timers
     _SpawnersPaused = false;
-    _IsGameOver = false;
 }
 
 //➥ Allow player to shoot the button to select it

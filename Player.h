@@ -50,6 +50,7 @@ public:
 	void SetSpeedMultiplier(float s) { SpeedMultiplier = s; }
 	void SetDamageMultiplier(float d) { DamageMultiplier = d; }
 	void AddShield() { Shield += 1; }
+	int GetShield() { return Shield; }
 
 	// Collision
 	Collider* collider = nullptr;

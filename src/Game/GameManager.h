@@ -49,6 +49,21 @@ struct PowerUpNotification
     float maxTimer = 2.0f;
 };
 
+struct FallingPixel
+{
+    olc::vi2d pos;
+    olc::Pixel color;
+    float velocity;
+};
+
+enum class EGameState
+{
+    Menu,
+    Playing,
+    GameOver,
+    Exiting
+};
+
 class GameManager
 {
 
@@ -70,6 +85,7 @@ public:
     bool SetupSpawner();
     std::vector<std::unique_ptr<PowerUp>>& GetPowerUpList() { return _PowerUps; }
     void AddPowerUpNotification(const std::string& text);
+    void StartExitAnimation();
     ~GameManager();
 
     void DrawPowerUpUI();
@@ -89,6 +105,8 @@ public:
     const olc::HWButton sneakButton;
 
     std::vector<PowerUpNotification> _PowerUpNotifications;
+    std::vector<FallingPixel> _FallingPixels;
+    EGameState _GameState = EGameState::Menu;
 
 protected:
 

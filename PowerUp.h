@@ -4,6 +4,8 @@
 #include "CollisionManager.h"
 #include "src/Game/GameManager.h"
 #include "Player.h"
+#include <sstream>
+#include <iomanip>
 
 class Player;
 
@@ -18,6 +20,7 @@ enum PowerUpType
 class PowerUp : public GameObject
 {
 public:
+    float temp = 0.0f;
     bool collected = false;
     GameManager* gameManager = nullptr;
     std::unique_ptr<Collider> collider = nullptr;
@@ -31,6 +34,15 @@ public:
 	void Draw(AcademiaEngine& engine) override;
     int GetScale() { return Scale; }
     PowerUpType GetType() { return type; }
+    constexpr std::string_view GetTypeName(PowerUpType pu) {
+        switch (pu) {
+        case Heal: return "Heal";
+        case Damage: return "Damage";
+        case Speed: return "Speed";
+        case Shield: return "Shield";
+        default: return "Unknown";
+        }
+    }
     olc::Sprite* GetSprite(AcademiaEngine& engine)
     {
         return &engine.PowerUpSheet;

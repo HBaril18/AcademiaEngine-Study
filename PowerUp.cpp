@@ -67,25 +67,29 @@ void PowerUp::Draw(AcademiaEngine& engine)
 
 void PowerUp::Apply(Player& player)
 {
+    temp = 0.0f;
     switch (type)
     {
     case PowerUpType::Heal:
         player.SetHealth(
             std::min(player.GetHealth() + 10.0f, 100.0f)
         );
-
+        temp = 10.0f;
         break;
 
     case PowerUpType::Speed:
         player.SetSpeedMultiplier(1.5f);
+        temp = 1.5f;
         break;
 
     case PowerUpType::Damage:
         player.SetDamageMultiplier(2.0f);
+        temp = 2.0f;
         break;
 
     case PowerUpType::Shield:
         player.AddShield();
+        temp = player.GetShield();
         break;
     }
 }
@@ -93,9 +97,12 @@ void PowerUp::Apply(Player& player)
 void PowerUp::Update(AcademiaEngine& engine, float elapsedTime) {
     if (collected)
     {
-        gameManager->AddPowerUpNotification(
-            std::to_string(GetType())
-        );
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(1) << temp;
+
+        auto text = std::string(GetTypeName(GetType())) + " : " + oss.str();
+
+        gameManager->AddPowerUpNotification(text);
     }
 
     _animationTimer += elapsedTime;
