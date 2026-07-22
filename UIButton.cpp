@@ -118,10 +118,13 @@ void UIButton::DrawMovingCornerLine(
 
 void UIButton::Update(float dt)
 {
+    float speedIn = 2.8f;
+    float speedOut = 2.0f;
+
     if (OnHover())
-        _ButtonLineAnim += dt;
+        _ButtonLineAnim += dt * speedIn;
     else
-        _ButtonLineAnim -= dt;
+        _ButtonLineAnim -= dt * speedOut;
 
     _ButtonLineAnim = std::clamp(_ButtonLineAnim, 0.0f, 1.0f);
 }
@@ -136,78 +139,173 @@ bool UIButton::OnHover()
 
 void UIButton::Draw()
 {
-    olc::Pixel purple = olc::Pixel(170, 45, 255);       // Main neon purple
-    olc::Pixel darkPurple = olc::Pixel(75, 20, 120);    // Dark border / inactive state
-    olc::Pixel white = olc::Pixel(235, 220, 255);       // Soft violet-white highlight
-    olc::Pixel dark = olc::Pixel(8, 6, 18);             // Deep space background
-    olc::Pixel lightPurple = olc::Pixel(220, 90, 255);  // Hover / glow color
+    bool hover = OnHover();
+    float t = _ButtonLineAnim;
 
-    // Hover highlight
-    if (OnHover())
+    olc::Pixel purple = olc::Pixel(170, 45, 255);
+    olc::Pixel darkPurple = olc::Pixel(55, 15, 95);
+    olc::Pixel deepPurple = olc::Pixel(22, 10, 42);
+    olc::Pixel white = olc::Pixel(235, 220, 255);
+    olc::Pixel glowPurple = olc::Pixel(220, 90, 255);
+    olc::Pixel shadow = olc::Pixel(0, 0, 0, 120);
+    olc::Pixel textShadow = olc::Pixel(20, 5, 35, 180);
+
+    olc::vf2d pos = _Position;
+    olc::vf2d size = _Size;
+
+    // -------------------------------------------------
+    // Shadow / depth
+    // -------------------------------------------------
+    _EngineContext->FillRectDecal(
+        pos + olc::vf2d(4.0f, 5.0f),
+        size,
+        shadow
+    );
+
+    // -------------------------------------------------
+    // Outer hover glow
+    // -------------------------------------------------
+    if (hover)
     {
-		purple = lightPurple;
-        _EngineContext->FillRectDecal(
-            _Position,
-            { _Size.x, _Size.y },
-            lightPurple
+        _EngineContext->DrawRectDecal(
+            pos - olc::vf2d(3.0f, 3.0f),
+            size + olc::vf2d(6.0f, 6.0f),
+            olc::Pixel(220, 90, 255, 80)
+        );
+
+        _EngineContext->DrawRectDecal(
+            pos - olc::vf2d(2.0f, 2.0f),
+            size + olc::vf2d(4.0f, 4.0f),
+            olc::Pixel(220, 90, 255, 120)
         );
     }
 
-    // Main body
+    // -------------------------------------------------
+    // Main background base
+    // -------------------------------------------------
+    _EngineContext->FillRectDecal(pos, size, deepPurple);
+
+    // -------------------------------------------------
+    // Fake vertical gradient
+    // -------------------------------------------------
+    for (int y = 0; y < int(size.y); y++)
+    {
+        float k = float(y) / size.y;
+
+        int r = int(70 + (120 * (1.0f - k)));
+        int g = int(20 + (25 * (1.0f - k)));
+        int b = int(120 + (90 * (1.0f - k)));
+
+        if (hover)
+        {
+            r += 25;
+            b += 35;
+        }
+
+        _EngineContext->FillRectDecal(
+            { pos.x, pos.y + float(y) },
+            { size.x, 1.0f },
+            olc::Pixel(r, g, b)
+        );
+    }
+
+    // -------------------------------------------------
+    // Top highlight strip
+    // -------------------------------------------------
     _EngineContext->FillRectDecal(
-        _Position,
-        _Size,
-        purple
+        pos + olc::vf2d(2.0f, 2.0f),
+        { size.x - 4.0f, 2.0f },
+        olc::Pixel(255, 210, 255, hover ? 170 : 110)
     );
 
+    // -------------------------------------------------
+    // Bottom depth strip
+    // -------------------------------------------------
+    _EngineContext->FillRectDecal(
+        { pos.x + 2.0f, pos.y + size.y - 4.0f },
+        { size.x - 4.0f, 2.0f },
+        olc::Pixel(20, 5, 40, 180)
+    );
+
+    // -------------------------------------------------
     // Border
+    // -------------------------------------------------
     _EngineContext->DrawRectDecal(
-        _Position,
-        _Size,
-        white
+        pos,
+        size,
+        hover ? glowPurple : white
     );
 
-    float t = _ButtonLineAnim;
+    // Inner dark border, gives a bevel feel
+    _EngineContext->DrawRectDecal(
+        pos + olc::vf2d(1.0f, 1.0f),
+        size - olc::vf2d(2.0f, 2.0f),
+        olc::Pixel(30, 8, 55, 140)
+    );
 
+    // -------------------------------------------------
+    // Animated corner lines
+    // -------------------------------------------------
     float inset = 10.0f;
     float cornerLength = 18.0f;
 
-    // Top-left goes to top-right
+    olc::Pixel lineColor = hover
+        ? olc::Pixel(255, 230, 255)
+        : olc::Pixel(220, 190, 255);
+
     DrawMovingCornerLine(
-        { float(_Position.x + inset), float(_Position.y + inset) },
-        { float(_Position.x + _Size.x - inset), float(_Position.y + inset) },
-        true,   // starts left
-        false,  // ends right
-        true,   // starts top
-        true,   // ends top
+        { pos.x + inset, pos.y + inset },
+        { pos.x + size.x - inset, pos.y + inset },
+        true,
+        false,
+        true,
+        true,
         t,
         cornerLength,
-        white
+        lineColor
     );
 
-    // Bottom-right goes to bottom-left
     DrawMovingCornerLine(
-        { float(_Position.x + _Size.x - inset), float(_Position.y + _Size.y - inset) },
-        { float(_Position.x + inset),     float(_Position.y + _Size.y - inset) },
-        false,  // starts right
-        true,   // ends left
-        false,  // starts bottom
-        false,  // ends bottom
+        { pos.x + size.x - inset, pos.y + size.y - inset },
+        { pos.x + inset, pos.y + size.y - inset },
+        false,
+        true,
+        false,
+        false,
         t,
         cornerLength,
-        white
+        lineColor
     );
 
+    // -------------------------------------------------
+    // Text
+    // -------------------------------------------------
     std::string text = _Text;
 
     if (_TextProvider)
         text = _TextProvider();
 
+    olc::vi2d textSize = _EngineContext->GetTextSize(text);
+
+    olc::vf2d textPos =
+    {
+        pos.x + size.x / 2.0f - textSize.x * _TextScale.x * 0.5f,
+        pos.y + size.y / 2.0f - textSize.y * _TextScale.y * 0.5f
+    };
+
+    // Text shadow
     _EngineContext->DrawStringDecal(
-        { float(_Position.x + _Size.x / 2 - _EngineContext->GetTextSize(text).x * _TextScale.x * 0.5f),
-        float(_Position.y + _Size.y / 2 - _EngineContext->GetTextSize(text).y * _TextScale.y * 0.5f) },
+        textPos + olc::vf2d(2.0f, 2.0f),
         text,
-        white,
+        textShadow,
+        _TextScale
+    );
+
+    // Main text
+    _EngineContext->DrawStringDecal(
+        textPos,
+        text,
+        hover ? olc::Pixel(255, 245, 255) : white,
         _TextScale
     );
 }

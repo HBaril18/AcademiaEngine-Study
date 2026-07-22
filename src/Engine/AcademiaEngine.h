@@ -18,6 +18,15 @@ struct SplashPixel
     bool reached = false;
 };
 
+struct OptionsParticle
+{
+    olc::vf2d Position;
+    olc::vf2d Velocity;
+    float Size = 1.0f;
+    float Alpha = 80.0f;
+    float PulseOffset = 0.0f;
+};
+
 class AcademiaEngine : public olc::PixelGameEngine
 {
 public:
@@ -38,17 +47,24 @@ public:
 	void DrawSplashBackground();
 	void DrawSplashShip();
 	void DrawSplashFlames(const olc::vf2d& shipPos, float angle);
-	void DrawSplashTitle();
+	void DrawSplashTitle(bool withSubTitle);
 
 	//LOBBY
 	void InitializeLobby();
+    void DrawLobbyGrid();
+    void DrawLobbyPanel();
 	void DrawLobby();
 	void UpdateLobby(float elapsedTime);
 
     //OPTIONS
 	void InitializeOptions();
+    void InitializeOptionsParticles();
+    void DrawOptionsParticles();
 	void DrawOptions();
 	void UpdateOptions(float elapsedTime);
+    void UpdateOptionsParticles(float dt);
+
+    void DrawFooter();
 
     //GAMESTATE
 	void SetState(EEngineState state) { _State = state; }
@@ -96,6 +112,11 @@ private:
 
     float _ButtonLineAnim = 0.0f;
     float _AnimSpeed = 2.0f;
+
+    float _LobbyTime = 0.0f;
+
+    std::vector<OptionsParticle> _OptionsParticles;
+    float _OptionsTime = 0.0f;
 
     std::deque<std::unique_ptr<UIButton>> _Buttons;
 };

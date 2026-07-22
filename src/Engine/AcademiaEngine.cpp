@@ -121,7 +121,7 @@ void AcademiaEngine::UpdateSplashScreen(float elapsedTime)
 	//Draw splash screen elements
     DrawSplashBackground();
     DrawSplashShip();
-    DrawSplashTitle();
+    DrawSplashTitle(true);
 
 	//Looking for user input to transition to the game state
     if (GetKey(olc::Key::SPACE).bPressed ||
@@ -234,7 +234,7 @@ void AcademiaEngine::DrawSplashShip()
     );
 }
 
-void AcademiaEngine::DrawSplashTitle()
+void AcademiaEngine::DrawSplashTitle(bool withSubTitle)
 {
     std::string title = "AWAKENING OF THE VOID";
 	std::string title2 = "PRESS SPACE OR MOUSE1 TO START";
@@ -288,27 +288,30 @@ void AcademiaEngine::DrawSplashTitle()
         { scale, scale }
     );
 
-    /*SUBTITLE*/
-    DrawStringDecal(
-        title2Pos + olc::vf2d(5.0f, 5.0f),
-        title2,
-        olc::Pixel(35, 0, 70, 180),
-        { scale2, scale2 }
-    );
+    if (withSubTitle) {
 
-    DrawStringDecal(
-        title2Pos + olc::vf2d(-3.0f, 0.0f),
-        title2,
-        olc::Pixel(70, 0, 130, 130),
-        { scale2, scale2 }
-    );
+        /*SUBTITLE*/
+        DrawStringDecal(
+            title2Pos + olc::vf2d(5.0f, 5.0f),
+            title2,
+            olc::Pixel(35, 0, 70, 180),
+            { scale2, scale2 }
+        );
 
-    DrawStringDecal(
-        title2Pos + olc::vf2d(3.0f, 0.0f),
-        title2,
-        olc::Pixel(70, 0, 130, 130),
-        { scale2, scale2 }
-    );
+        DrawStringDecal(
+            title2Pos + olc::vf2d(-3.0f, 0.0f),
+            title2,
+            olc::Pixel(70, 0, 130, 130),
+            { scale2, scale2 }
+        );
+
+        DrawStringDecal(
+            title2Pos + olc::vf2d(3.0f, 0.0f),
+            title2,
+            olc::Pixel(70, 0, 130, 130),
+            { scale2, scale2 }
+        );
+    }
 
     // ----------------------------
     // 2. Main title
@@ -320,13 +323,14 @@ void AcademiaEngine::DrawSplashTitle()
         { scale, scale }
     );
 
-    DrawStringDecal(
-        title2Pos,
-        title2,
-        olc::Pixel(190, 120, 255),
-        { scale2, scale2 }
-    );
-
+    if (withSubTitle) {
+        DrawStringDecal(
+            title2Pos,
+            title2,
+            olc::Pixel(190, 120, 255),
+            { scale2, scale2 }
+        );
+    }
     // ----------------------------
     // 3. Moving shine effect
     // ----------------------------
@@ -377,41 +381,151 @@ void AcademiaEngine::DrawSplashTitle()
 void AcademiaEngine::InitializeLobby()
 {
     _State = EEngineState::Lobby;
-	_Buttons.clear();
-    //OPTIONS BUTTON TO GO IN OPTIONS STATE
-    auto optionsButton = std::make_unique<UIButton>(this);
-    optionsButton->SetPosition(olc::vf2d(ScreenWidth() / 2 - 100, ScreenHeight() / 2));
-    optionsButton->SetSize(olc::vf2d(200, 50));
-    optionsButton->SetText("OPTIONS");
-    optionsButton->SetTextScale(olc::vf2d(2.0f, 2.0f));
+    _Buttons.clear();
 
-	//START BUTTON TO GO IN GAME STATE
+    float buttonWidth = 240.0f;
+    float buttonHeight = 56.0f;
+    float spacing = 72.0f;
+
+    float centerX = ScreenWidth() * 0.5f;
+    float startY = ScreenHeight() * 0.52f;
+
     auto startButton = std::make_unique<UIButton>(this);
-    startButton->SetPosition(olc::vf2d(ScreenWidth() / 2 - 100, ScreenHeight() / 2 + 100));
-    startButton->SetSize(olc::vf2d(200, 50));
+    startButton->SetPosition({ centerX - buttonWidth * 0.5f, startY });
+    startButton->SetSize({ buttonWidth, buttonHeight });
     startButton->SetText("START");
-    startButton->SetTextScale(olc::vf2d(2.0f, 2.0f));
+    startButton->SetTextScale({ 2.0f, 2.0f });
 
-	//EXIT BUTTON TO EXIT THE GAME
+    auto optionsButton = std::make_unique<UIButton>(this);
+    optionsButton->SetPosition({ centerX - buttonWidth * 0.5f, startY + spacing });
+    optionsButton->SetSize({ buttonWidth, buttonHeight });
+    optionsButton->SetText("OPTIONS");
+    optionsButton->SetTextScale({ 2.0f, 2.0f });
+
     auto exitButton = std::make_unique<UIButton>(this);
-    exitButton->SetPosition(olc::vf2d(ScreenWidth() / 2 - 100, ScreenHeight() / 2 + 400));
-    exitButton->SetSize(olc::vf2d(200, 50));
+    exitButton->SetPosition({ centerX - buttonWidth * 0.5f, startY + spacing * 2.0f });
+    exitButton->SetSize({ buttonWidth, buttonHeight });
     exitButton->SetText("EXIT");
-    exitButton->SetTextScale(olc::vf2d(2.0f, 2.0f));
+    exitButton->SetTextScale({ 2.0f, 2.0f });
+
+    startButton->SetOnClick([this] {
+        _State = EEngineState::Game;
+        });
 
     optionsButton->SetOnClick([this] {
         _PendingState = EEngineState::Options;
         });
-    startButton->SetOnClick([this] {
-        _State = EEngineState::Game;
-        });
-	exitButton->SetOnClick([this] {
-		exit(0);
-		});
 
-	_Buttons.push_back(std::move(optionsButton));
+    exitButton->SetOnClick([this] {
+        exit(0);
+        });
+
     _Buttons.push_back(std::move(startButton));
-	_Buttons.push_back(std::move(exitButton));
+    _Buttons.push_back(std::move(optionsButton));
+    _Buttons.push_back(std::move(exitButton));
+}
+
+void AcademiaEngine::DrawLobbyGrid()
+{
+    olc::Pixel gridColor = olc::Pixel(130, 40, 210, 45);
+
+    int gridSize = 32;
+    float offset = std::fmod(_LobbyTime * 20.0f, float(gridSize));
+
+    for (int x = -gridSize; x < ScreenWidth() + gridSize; x += gridSize)
+    {
+        DrawLineDecal(
+            { float(x), 0.0f },
+            { float(x), float(ScreenHeight()) },
+            gridColor
+        );
+    }
+
+    for (int y = -gridSize; y < ScreenHeight() + gridSize; y += gridSize)
+    {
+        DrawLineDecal(
+            { 0.0f, float(y) + offset },
+            { float(ScreenWidth()), float(y) + offset },
+            gridColor
+        );
+    }
+}
+
+void AcademiaEngine::DrawLobbyPanel()
+{
+    float panelWidth = 340.0f;
+    float panelHeight = 290.0f;
+
+    olc::vf2d panelPos =
+    {
+        ScreenWidth() * 0.5f - panelWidth * 0.5f,
+        ScreenHeight() * 0.48f
+    };
+
+    olc::vf2d panelSize =
+    {
+        panelWidth,
+        panelHeight
+    };
+
+    // Shadow
+    FillRectDecal(
+        panelPos + olc::vf2d(8.0f, 10.0f),
+        panelSize,
+        olc::Pixel(0, 0, 0, 110)
+    );
+
+    // Main panel
+    FillRectDecal(
+        panelPos,
+        panelSize,
+        olc::Pixel(12, 6, 28, 190)
+    );
+
+    // Outer glow rectangles
+    DrawRectDecal(
+        panelPos - olc::vf2d(3.0f, 3.0f),
+        panelSize + olc::vf2d(6.0f, 6.0f),
+        olc::Pixel(150, 45, 255, 70)
+    );
+
+    DrawRectDecal(
+        panelPos,
+        panelSize,
+        olc::Pixel(235, 220, 255, 130)
+    );
+
+    // Top highlight
+    FillRectDecal(
+        panelPos + olc::vf2d(3.0f, 3.0f),
+        { panelSize.x - 6.0f, 2.0f },
+        olc::Pixel(255, 210, 255, 120)
+    );
+
+    // Bottom dark edge
+    FillRectDecal(
+        { panelPos.x + 3.0f, panelPos.y + panelSize.y - 5.0f },
+        { panelSize.x - 6.0f, 2.0f },
+        olc::Pixel(0, 0, 0, 130)
+    );
+}
+
+void AcademiaEngine::DrawFooter()
+{
+    std::string footer = "v0.1  |  Academia Engine";
+    olc::vf2d scale = { 1.0f, 1.0f };
+
+    olc::vi2d textSize = GetTextSize(footer);
+
+    DrawStringDecal(
+        {
+            ScreenWidth() - textSize.x * scale.x - 12.0f,
+            ScreenHeight() - 18.0f
+        },
+        footer,
+        olc::Pixel(155, 120, 190),
+        scale
+    );
 }
 
 void AcademiaEngine::DrawLobby()
@@ -426,6 +540,9 @@ void AcademiaEngine::DrawLobby()
         }
     );
 
+    DrawLobbyGrid();
+    DrawLobbyPanel();
+
 	//BUTTONS
     for (auto& buttonPtr : _Buttons)
     {
@@ -433,10 +550,16 @@ void AcademiaEngine::DrawLobby()
 
         button.Draw();
     }
+
+    DrawSplashTitle(false);
+    DrawFooter();
 }
 
 void AcademiaEngine::UpdateLobby(float elapsedTime)
 {
+    _LobbyTime += elapsedTime;
+    _TitleShineTimer += elapsedTime;
+
     for (auto& buttonPtr : _Buttons)
     {
         auto& button = *buttonPtr;
@@ -461,6 +584,7 @@ void AcademiaEngine::UpdateLobby(float elapsedTime)
 /*OPTIONS*/
 void AcademiaEngine::InitializeOptions()
 {
+    InitializeOptionsParticles();
     _State = EEngineState::Options;
 	_Buttons.clear();
 	//LOBBY BUTTON TO GO BACK TO LOBBY STATE
@@ -493,6 +617,76 @@ void AcademiaEngine::InitializeOptions()
 	_Buttons.push_back(std::move(difficultyButton));
 }
 
+void AcademiaEngine::InitializeOptionsParticles()
+{
+    _OptionsParticles.clear();
+
+    int particleCount = 120;
+
+    for (int i = 0; i < particleCount; i++)
+    {
+        OptionsParticle p;
+
+        p.Position =
+        {
+            float(rand() % ScreenWidth()),
+            float(rand() % ScreenHeight())
+        };
+
+        p.Velocity =
+        {
+            -8.0f + float(rand() % 1600) / 100.0f,  // -8 to +8
+             8.0f + float(rand() % 1200) / 100.0f   //  8 to +20
+        };
+
+        p.Size = 1.0f + float(rand() % 3);          // 1 to 3 pixels
+        p.Alpha = 40.0f + float(rand() % 90);       // 40 to 130
+        p.PulseOffset = float(rand() % 628) / 100.0f;
+
+        _OptionsParticles.push_back(p);
+    }
+}
+
+void AcademiaEngine::DrawOptionsParticles()
+{
+    for (auto& p : _OptionsParticles)
+    {
+        float pulse = 0.5f + 0.5f * std::sin(_OptionsTime * 2.5f + p.PulseOffset);
+
+        uint8_t alpha = uint8_t(p.Alpha + pulse * 80.0f);
+
+        olc::Pixel color =
+        {
+            190,
+            90,
+            255,
+            alpha
+        };
+
+        FillRectDecal(
+            p.Position,
+            { p.Size, p.Size },
+            color
+        );
+
+        // Every few particles get a tiny glow cross
+        if (int(p.PulseOffset * 100.0f) % 5 == 0)
+        {
+            DrawLineDecal(
+                { p.Position.x - 2.0f, p.Position.y },
+                { p.Position.x + 2.0f, p.Position.y },
+                olc::Pixel(220, 160, 255, alpha / 2)
+            );
+
+            DrawLineDecal(
+                { p.Position.x, p.Position.y - 2.0f },
+                { p.Position.x, p.Position.y + 2.0f },
+                olc::Pixel(220, 160, 255, alpha / 2)
+            );
+        }
+    }
+}
+
 void AcademiaEngine::DrawOptions()
 {
 	//BACKGROUND
@@ -505,6 +699,8 @@ void AcademiaEngine::DrawOptions()
 		}
 	);
 
+    DrawOptionsParticles();
+
     //BUTTONS
     for (auto& buttonPtr : _Buttons)
     {
@@ -513,10 +709,13 @@ void AcademiaEngine::DrawOptions()
         button.Draw();
     }
 
+    DrawFooter();
 }
 
 void AcademiaEngine::UpdateOptions(float elapsedTime)
 {
+    UpdateOptionsParticles(elapsedTime);
+
     for (auto& buttonPtr : _Buttons)
     {
         auto& button = *buttonPtr;
@@ -536,6 +735,27 @@ void AcademiaEngine::UpdateOptions(float elapsedTime)
     }
 
 	DrawOptions();
+}
+
+void AcademiaEngine::UpdateOptionsParticles(float dt)
+{
+    for (auto& p : _OptionsParticles)
+    {
+        p.Position += p.Velocity * dt;
+
+        // Wrap around screen
+        if (p.Position.x < 0.0f)
+            p.Position.x = float(ScreenWidth());
+
+        if (p.Position.x > ScreenWidth())
+            p.Position.x = 0.0f;
+
+        if (p.Position.y < 0.0f)
+            p.Position.y = float(ScreenHeight());
+
+        if (p.Position.y > ScreenHeight())
+            p.Position.y = 0.0f;
+    }
 }
 
 /*Academia*/
