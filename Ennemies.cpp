@@ -80,8 +80,6 @@ Ennemies::~Ennemies()
     // unique_ptr libérera automatiquement
 }
 
-
-
 void Ennemies::Draw(AcademiaEngine& engine)
 {
     olc::Sprite* sheet = GetSprite(engine);
@@ -165,7 +163,9 @@ void Ennemies::RemoveEnnemie(
             {
                 if (e->Health <= 0)
                 {
-                    e->SpawnPowerUp(engine);
+					//Random number to get a chance to spawn a powerup when an enemy dies
+					float temp = (float)(rand() % 100) / 100.0f;
+					if (temp < 0.25f) e->SpawnPowerUp(engine);
                     return true;
                 }
                 return false;
@@ -175,7 +175,19 @@ void Ennemies::RemoveEnnemie(
 }
 
 void Ennemies::SpawnPowerUp(AcademiaEngine& engine) {
-    auto p = std::make_unique<PowerUp>(Position, 12.0f, PowerUpType::Heal);
+	//Random number to spawn different types of powerups
+    //Each powerup has different chances to spawn
+	float temp = (float)(rand() % 100) / 100.0f;
+    auto p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Shield);
+	if (temp < 0.5f) {
+        p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Heal);
+	}
+	else if (temp < 0.7f) {
+        p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Speed);
+	}
+	else if (temp < 0.9f) {
+        p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Damage);
+	}
 
     p->sprite = &engine.PowerUpSheet;
     p->decal = new olc::Decal(p->sprite);
@@ -201,7 +213,6 @@ void Ennemies::Update(AcademiaEngine& engine, float dt)
         GetDirection(engine, player->GetPosition());
     }
 
-
     Timer += dt;
 
     if (Timer > 0.2f)
@@ -209,7 +220,6 @@ void Ennemies::Update(AcademiaEngine& engine, float dt)
         Frame = (Frame + 1) % 4; // 4 frames animation
         Timer = 0.f;
     }
-
 
     // Mouvement de base
     AddForce(engine, GetSpeed(), direction, dt);

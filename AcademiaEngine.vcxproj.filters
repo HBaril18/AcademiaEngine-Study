@@ -57,6 +57,15 @@
     <ClCompile Include="LightEnemy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Cthulhu.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Cthulhu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UIButton.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\olc\olcPixelGameEngine.h">
@@ -105,6 +114,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LightEnemy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PowerUpType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UIButton.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

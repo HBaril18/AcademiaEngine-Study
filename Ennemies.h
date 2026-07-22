@@ -34,6 +34,8 @@ public:
     {
         return &engine.RedSlimeSheet;
     }
+    virtual bool IsDialogueActive() const { return false; }
+    virtual void DrawDialogue(AcademiaEngine& engine){}
 
     void SetGameManager(GameManager* gm) { gameManager = gm; }
 

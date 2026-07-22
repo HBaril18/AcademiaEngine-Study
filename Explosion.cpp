@@ -20,7 +20,6 @@ Explosion::Explosion(olc::vf2d pos, ExplosionType type)
         p.vel = { cos(a) * s, sin(a) * s * 0.5f };
         p.life = lifeDist(rng);
 
-        // 🎨 Couleurs selon type
         if (type == ExplosionType::Enemy)
         {
             if (i % 3 == 0) p.color = olc::YELLOW;
@@ -73,8 +72,5 @@ void Explosion::Draw(AcademiaEngine* engine)
 
         // Dessine un pixel (ou petit carré)
         engine->FillRect(screenPos, { 3,3 }, p.color);
-
-        // OPTION stylée :
-        // engine->FillRect(screenPos, {2,2}, p.color);
     }
 }

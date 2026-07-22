@@ -203,7 +203,12 @@ void CollisionManager::Update(float elapsedTime)
 						if (p && e && p->damageCooldown <= 0.0f)
 						{
 							//Damage
-							p->TakeDamage(10.0f);
+							if (p->GetShield() > 0) {
+								p->RemoveShield();
+							}
+							else {
+								p->TakeDamage(10.0f);
+							}
 							p->damageCooldown = p->damageDelay;
 
 							//Knockback direction
@@ -231,7 +236,7 @@ void CollisionManager::Update(float elapsedTime)
 							bullet = static_cast<Bullet*>(colliderA->owner);
 						}
 						if (enemy) {
-							enemy->TakeDamage(10.0f, elapsedTime);
+							enemy->TakeDamage(10.0f * player->GetDamageMultiplier(), elapsedTime);
 						}
 						if (bullet) {
 							RemoveBullet(bullet);
@@ -239,7 +244,6 @@ void CollisionManager::Update(float elapsedTime)
 					}
 					// Player-PowerUp
 					else if ((a == 1 && b == 0) || (a == 0 && b == 1)) {
-						std::cout << "Toucher PowerUp";
 						Player* player = nullptr;
 						PowerUp* powerUp = nullptr;
 						if (a == 1){

@@ -34,6 +34,30 @@ void Player::Update(AcademiaEngine& engine, float elapsedTime) {
     // Stop tiny jitter
     if (knockbackVelocity.mag2() < 1.0f)
         knockbackVelocity = { 0.0f, 0.0f };
+
+    if (speedPowerupTimer > 0.0f)
+    {
+        speedPowerupTimer -= elapsedTime;
+
+        if (speedPowerupTimer <= 0.0f)
+            SetSpeedMultiplier(1.0f);
+    }
+
+    if (damagePowerupTimer > 0.0f)
+    {
+        damagePowerupTimer -= elapsedTime;
+
+        if (damagePowerupTimer <= 0.0f)
+            SetDamageMultiplier(1.0f);
+    }
+
+    if (shieldPowerupTimer > 0.0f)
+    {
+        shieldPowerupTimer -= elapsedTime;
+
+        if (shieldPowerupTimer <= 0.0f)
+            RemoveShield(); // or SetShield(0)
+    }
 }
 
 void Player::InitializeCollision(CollisionManager* collisionManager) {
@@ -124,8 +148,8 @@ void Player::DrawCursor(AcademiaEngine& engine, olc::vf2d cursorWorldPos) {
 
 void Player::AddForce(AcademiaEngine& engine, float force, const std::vector<float>& direction, float elapsedTime) {
     for (int i = 0; i < direction.size(); i++) {
-        Position.x += direction[0] * force * elapsedTime;
-        Position.y += direction[1] * force * elapsedTime;
+        Position.x += direction[0] * force * elapsedTime * GetSpeedMultiplier();
+        Position.y += direction[1] * force * elapsedTime * GetSpeedMultiplier();
     }
     olc::vi2d pixelPos = engine.ConvertWorldPositionToPixels(Position);
 }
@@ -173,6 +197,24 @@ void Player::AddScore(float scoreToAdd) {
     if (gameManager) {
         gameManager->AddScore(scoreToAdd);
     }
+}
+
+void Player::ActivateSpeedPowerup()
+{
+    SetSpeedMultiplier(1.5f);
+    speedPowerupTimer = 5.0f; // refresh timer
+}
+
+void Player::ActivateDamagePowerup()
+{
+    SetDamageMultiplier(2.0f);
+    damagePowerupTimer = 5.0f; // refresh timer
+}
+
+void Player::ActivateShieldPowerup()
+{
+    AddShield();
+    shieldPowerupTimer = 5.0f; // refresh timer
 }
 
 Player::~Player()

@@ -12,24 +12,26 @@
 //                                  //
 /*----------------------------------*/
 
-void Spawner::SpawnEnnemies(AcademiaEngine& engine, Player* player, CollisionManager* cm)
+#include <random>
+
+void Spawner::Update(AcademiaEngine& engine, float elapsedTime)
 {
-    std::unique_ptr<Ennemies> enemy;
+    SpawnTimer += elapsedTime;
 
-    int r = rand() % 2;
-
-    if (r == 0)
-        enemy = std::make_unique<Ennemies>(Position, 15.0f, 50.0f);
-    else if (r == 1)
-        enemy = std::make_unique<LightEnemy>(Position, 10.0f, 20.0f);
-
-    if (player)
-        enemy->SetPlayer(player);
-
-    enemy->InitializeCollision(cm);
-
+    if (SpawnTimer >= SpawnInterval)
     {
-        std::lock_guard<std::mutex> lk(ennemies_mutex);
-        ennemies_container.push_back(std::move(enemy));
+        SpawnTimer = 0.0f;
+
+        if (gameManager)
+        {
+            gameManager->SpawnRandomEnemy();
+        }
+
+        static std::mt19937 rng(std::random_device{}());
+
+        std::uniform_real_distribution<float>
+            nextSpawn(3.0f, 10.0f);
+
+        SpawnInterval = nextSpawn(rng);
     }
 }

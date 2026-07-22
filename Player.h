@@ -1,6 +1,7 @@
 #pragma once
 #include "Character.h"
 #include "Bullet.h"
+#include "PowerUpType.h"
 #include <vector>
 #include <deque>
 
@@ -8,6 +9,12 @@
 class GameManager;
 class CollisionManager;
 struct Collider;
+
+struct ActivePowerUp
+{
+	PowerUpType type;
+	float remainingTime;
+};
 
 /*----------------------------------*/
 //                                  //
@@ -21,6 +28,10 @@ class Player : public Character
 public:
 	Player(AcademiaEngine& engine);
 	virtual ~Player();
+
+	float speedPowerupTimer = 0.0f;
+	float damagePowerupTimer = 0.0f;
+	float shieldPowerupTimer = 0.0f;
 
 	float damageCooldown = 0.0f;     // temps restant
 	float damageDelay = 0.45f;        // délai entre dégâts (en secondes)
@@ -49,8 +60,14 @@ public:
 	}
 	void SetSpeedMultiplier(float s) { SpeedMultiplier = s; }
 	void SetDamageMultiplier(float d) { DamageMultiplier = d; }
+	float GetSpeedMultiplier() const { return SpeedMultiplier; }
+	float GetDamageMultiplier() const { return DamageMultiplier; }
 	void AddShield() { Shield += 1; }
+	void RemoveShield() { if (Shield > 0) Shield -= 1; }
 	int GetShield() { return Shield; }
+	void ActivateSpeedPowerup();
+	void ActivateDamagePowerup();
+	void ActivateShieldPowerup();
 
 	// Collision
 	Collider* collider = nullptr;
@@ -75,5 +92,6 @@ protected:
 	float Scale = 0.5f;
 private:
 	olc::Sprite* spriteSheet = nullptr;
-	AcademiaEngine* _Engine = nullptr;;
+	AcademiaEngine* _Engine = nullptr;
+	std::vector<ActivePowerUp> _ActivePowerUps;
 };

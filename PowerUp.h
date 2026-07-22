@@ -4,18 +4,11 @@
 #include "CollisionManager.h"
 #include "src/Game/GameManager.h"
 #include "Player.h"
+#include "PowerUpType.h"
 #include <sstream>
 #include <iomanip>
 
 class Player;
-
-enum PowerUpType
-{
-    Heal,
-    Damage,
-    Speed,
-    Shield
-};
 
 class PowerUp : public GameObject
 {
@@ -32,14 +25,14 @@ public:
     PowerUp(olc::vf2d pos, float radius, PowerUpType type);
 	void Update(AcademiaEngine& engine, float elapsedTime) override;
 	void Draw(AcademiaEngine& engine) override;
-    int GetScale() { return Scale; }
+    float GetScale() { return Scale; }
     PowerUpType GetType() { return type; }
     constexpr std::string_view GetTypeName(PowerUpType pu) {
         switch (pu) {
-        case Heal: return "Heal";
-        case Damage: return "Damage";
-        case Speed: return "Speed";
-        case Shield: return "Shield";
+        case PowerUpType::Heal: return "Heal";
+        case PowerUpType::Damage: return "Damage";
+        case PowerUpType::Speed: return "Speed";
+        case PowerUpType::Shield: return "Shield";
         default: return "Unknown";
         }
     }

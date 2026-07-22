@@ -115,6 +115,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -158,6 +159,8 @@
   <ItemGroup>
     <ClCompile Include="Bullet.cpp" />
     <ClCompile Include="CollisionManager.cpp" />
+    <ClCompile Include="Cthulhu.cpp" />
+    <ClCompile Include="Cthulhu.h" />
     <ClCompile Include="Ennemies.cpp" />
     <ClCompile Include="Explosion.cpp" />
     <ClCompile Include="LightEnemy.cpp" />
@@ -170,17 +173,20 @@
     <ClCompile Include="external\olc\olcPGE_implementation.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\Engine\AcademiaEngine.cpp" />
+    <ClCompile Include="UIButton.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bullet.h" />
     <ClInclude Include="Character.h" />
     <ClInclude Include="Collider.h" />
     <ClInclude Include="CollisionManager.h" />
+    <ClInclude Include="EngineState.h" />
     <ClInclude Include="Explosion.h" />
     <ClInclude Include="LightEnemy.h" />
     <ClInclude Include="PeriodicTimer.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="PowerUp.h" />
+    <ClInclude Include="PowerUpType.h" />
     <ClInclude Include="Spawner.h" />
     <ClInclude Include="src\Game\GameManager.h" />
     <ClInclude Include="src\Game\GameObject.h" />
@@ -188,6 +194,7 @@
     <ClInclude Include="external\olc\olcPixelGameEngine.h" />
     <ClInclude Include="src\Engine\AcademiaEngine.h" />
     <ClInclude Include="src\Utils.h" />
+    <ClInclude Include="UIButton.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

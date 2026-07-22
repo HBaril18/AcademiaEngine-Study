@@ -78,13 +78,13 @@ void PowerUp::Apply(Player& player)
         break;
 
     case PowerUpType::Speed:
-        player.SetSpeedMultiplier(1.5f);
-        temp = 1.5f;
+        player.ActivateSpeedPowerup();
+        temp = player.GetSpeedMultiplier();
         break;
 
     case PowerUpType::Damage:
-        player.SetDamageMultiplier(2.0f);
-        temp = 2.0f;
+        player.ActivateDamagePowerup();
+        temp = player.GetDamageMultiplier();
         break;
 
     case PowerUpType::Shield:

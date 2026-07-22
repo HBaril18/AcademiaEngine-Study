@@ -5,6 +5,8 @@
 #include <memory>
 #include <mutex>
 #include <random>
+#include "LightEnemy.h"
+#include "Cthulhu.h"
 
 
 GameManager::GameManager(AcademiaEngine* engine)
@@ -12,7 +14,6 @@ GameManager::GameManager(AcademiaEngine* engine)
 {
     _EngineContext = engine;
 }
-
 
 bool GameManager::Initialize(AcademiaEngine* engineContext)
 {
@@ -28,6 +29,7 @@ bool GameManager::Initialize(AcademiaEngine* engineContext)
         _CollisionManager.SetPlayer(&_Player);
         // Initialize player collider via Player API
         _Player.InitializeCollision(&_CollisionManager);
+        InitializeGame();
     }
     catch (...) { _Success = false; }
     return _Success;
@@ -36,9 +38,6 @@ bool GameManager::Initialize(AcademiaEngine* engineContext)
 
 void GameManager::Update(float elapsedTime)
 {
-    StartGameLogic(elapsedTime);
-
-    
     //Gameplay code
     //Movement handle
     float x = 0.0f;
@@ -73,15 +72,12 @@ void GameManager::Update(float elapsedTime)
         _Player.SpawnBullet(*_EngineContext);
     }
 
-    /* SPAWNER handled by PeriodicTimer started in Initialize() */
-    // Process spawn requests signalled by timers for each spawner (skip if paused)
-    if (!_SpawnersPaused) {
-        for (size_t i = 0; i < _Spawners.size(); ++i) {
-            if (_SpawnRequested[i] && _SpawnRequested[i]->exchange(false)) {
-                // spawn on main thread to keep CollisionManager usage single-threaded
-                _Spawners[i]->SpawnEnnemies(*_EngineContext, &_Player, &_CollisionManager);
-            }
-        }
+    for (auto& spawner : _Spawners)
+    {
+		// Update each spawner only if the spawner is not paused and the game state is playing
+		if (_GameState == EGameState::Playing && !_SpawnersPaused)
+        spawner->Update(*_EngineContext,
+            elapsedTime);
     }
 
     // Normalize diagonal movement
@@ -105,26 +101,22 @@ void GameManager::Update(float elapsedTime)
     // Keep bullets updating/drawing above so player can shoot UI buttons on the start screen
     if (_GameState == EGameState::Playing) {
         // iterate enemies for each spawner (each spawner protects its own container)
-        for (auto& sp : _Spawners)
+        for (auto& enemyPtr : _Enemies)
         {
-            std::lock_guard<std::mutex> lk(sp->GetEnnemiesMutex());
-            auto& enemys = sp->GetEnnemies();
+            auto& enemy = *enemyPtr;
 
-            for (auto& enemyPtr : enemys)
+            enemy.SetGameManager(this);
+            enemy.Update(*_EngineContext, elapsedTime);
+            enemy.Draw(*_EngineContext);
+
+            if (enemy.GetHealth() <= 0.0f && !enemy.hasExploded)
             {
-                auto& enemy = *enemyPtr;
-                enemy.SetGameManager(this);
-                enemy.Update(*_EngineContext, elapsedTime);
-                enemy.Draw(*_EngineContext);
-
-                if (enemy.GetHealth() <= 0.0f && !enemy.hasExploded)
-                {
-                    _Explosions.emplace_back(enemy.GetPosition(), ExplosionType::Enemy);
-                }
+                _Explosions.emplace_back(enemy.GetPosition(),
+                    ExplosionType::Enemy);
             }
-            Ennemies::RemoveEnnemie(enemys, *_EngineContext);
-            _Player.AddScore(10.0f * enemys.size() * elapsedTime);
         }
+
+        Ennemies::RemoveEnnemie(_Enemies, *_EngineContext);
 
         for (auto& p : _PowerUps)
         {
@@ -176,6 +168,18 @@ void GameManager::Update(float elapsedTime)
         }
         _CollisionManager.SetBullets(&bulletsRef);
         _CollisionManager.Update(elapsedTime);
+
+		//First boss fight is Chtulhu, so we can check if the score is above 50k to start the fight.
+        if (_Score >= 1000.0f && !inBossFight) {
+			//Stop the spawners and remove all the ennemies on the screen to start the boss fight.
+            StartChtulhuFight();
+			_Cthulhu->SetPlayer(&_Player);
+        }
+        if (_Cthulhu) {
+			_Cthulhu->Update(*_EngineContext, elapsedTime);
+			_Cthulhu->Draw(*_EngineContext);
+            if (_Cthulhu->IsDialogueActive()) _Cthulhu->DrawDialogue(*_EngineContext);
+        }
 
         // collision logic handled here but bullets already cleaned up
     } else {
@@ -233,22 +237,10 @@ void GameManager::StartExitAnimation()
 
 //Clear all the pointer after the game close to clear the memory.
 //➥Ex: _Spawner, _Player, etc.
-bool GameManager::Uninitialize() {
-    _Success = true;
-    for (auto& t : _SpawnerTimers) {
-        if (t) {
-            t->stop();
-            _Success = true;
-        }
-        else _Success = false;
-    }
-    try {
-        _SpawnerTimers.clear();
-
-        _Player.ShutdownCollision(&_CollisionManager);
-    }
-    catch (...) { _Success = false; }
-    return _Success;
+bool GameManager::Uninitialize()
+{
+    _Player.ShutdownCollision(&_CollisionManager);
+    return true;
 }
 
 //Destructor of GameManager to Unitialize pointer.
@@ -304,20 +296,7 @@ void GameManager::DrawUI() {
         _EngineContext->DrawLine(0, 35, 1920, 35, mainUIOrange);
         int scoreTextWidth = _EngineContext->GetTextSize("Score: " + std::to_string(static_cast<int>(GetScore()))).x;
         _EngineContext->DrawString(1820 - scoreTextWidth, 12, "Score: " + std::to_string(static_cast<int>(GetScore())), alertUIYellow, 2);
-
-    switch (static_cast<int>(_DifficultyLevel)) {
-    case 0:
-        _EngineContext->DrawString(830, 12, "Difficulty : EASY", alertUIYellow, 2);
-        break;
-    case 1:
-        _EngineContext->DrawString(830, 12, "Difficulty : MEDIUM", alertUIYellow, 2);
-        break;
-    case 2:
-        _EngineContext->DrawString(830, 12, "Difficulty : HARD", alertUIYellow, 2);
-        break;
-    default:
-        break;
-    }
+        _EngineContext->DrawString(830, 12, "Difficulty : " + GetDifficultyLevelString(), alertUIYellow, 2);
 }
 
 //Setup the spawner of ennemies.
@@ -325,149 +304,103 @@ void GameManager::DrawUI() {
 //➥ Pointer of each spawner
 //➥ Position of each spawner
 //➥ Collision of ennemies spawned by each spawner
-bool GameManager::SetupSpawner() {
+bool GameManager::SetupSpawner()
+{
     _Success = true;
-    std::random_device rd;
-    std::mt19937 gen(rd());
 
     int spawnerCount = 2 + static_cast<int>(_DifficultyLevel);
 
+    _Spawners.clear();
     _Spawners.reserve(spawnerCount);
-    _SpawnerTimers.reserve(spawnerCount);
-    _SpawnRequested.resize(spawnerCount);
 
-    for (int i = 0; i < spawnerCount; ++i) {
-
+    for (int i = 0; i < spawnerCount; ++i)
+    {
         auto sp = std::make_unique<Spawner>();
-        if (!sp) _Success = false;
 
-        if (i == 0)
-            sp->SetPosition(olc::vf2d(_EngineContext->ScreenWidth() / 2, _EngineContext->ScreenHeight() / 2 ));
-        else if (i == 1)
-            sp->SetPosition(olc::vf2d(-_EngineContext->ScreenWidth() / 2, _EngineContext->ScreenHeight() / 2 ));
-        else if (i == 2)
-            sp->SetPosition(olc::vf2d(_EngineContext->ScreenWidth() / 2, -_EngineContext->ScreenHeight() / 2 ));
-        else if (i == 3)
-            sp->SetPosition(olc::vf2d(-_EngineContext->ScreenWidth() / 2, -_EngineContext->ScreenHeight() / 2 ));
-
-        sp->SetCollisionManager(&_CollisionManager);
-        _Spawners.push_back(std::move(sp));
-
-        _SpawnRequested[i] = std::make_unique<std::atomic<bool>>(false);
-        if (!_SpawnRequested[i]) _Success = false;
-
-
-        /*=======THIS PORTION OF CODE WAS MADE WITH THE HELP OF COPILOT========*/
-        // 1. interval initial
-        std::uniform_int_distribution<int> distrib(3, 10);
-        auto interval = std::chrono::seconds(distrib(gen));
-
-        // 2. créer le timer d'abord (sans task)
-        auto timer = std::make_unique<PeriodicTimer>(interval, []() {});
-        if (!timer) _Success = false;
-        
-        auto timerPtr = timer.get();
-        if (!timerPtr) _Success = false;
-
-        // 3. créer la task avec pointeurs stables
-        auto spawnTask = [this, i, timerPtr]() {
-
-            if (_SpawnRequested[i])
-                _SpawnRequested[i]->store(true);
-
-            static thread_local std::mt19937 gen(std::random_device{}());
-            std::uniform_int_distribution<int> distrib(3, 10);
-
-            int nextDelay = distrib(gen);
-            };
-
-        // 4. injecter la task
-        timer->setTask(spawnTask);
-
-        // 5. stocker
-        _SpawnerTimers.push_back(std::move(timer));
-
-        // 6. start
-        try { _SpawnerTimers.back()->start(); }
-        catch (...) {
+        if (!sp)
+        {
             _Success = false;
+            continue;
         }
-        /*==================================================================*/
+
+        sp->SetGameManager(this);
+
+        _Spawners.push_back(std::move(sp));
     }
+
     return _Success;
 }
 
-//Options UI and logic for it.
-//➥ EXIT OPTIONS button
-//➥ EASY button
-//➥ MEDIUM button
-//➥ HARD button
-//➥ Redrawing of OPTIONS button and "Press SPACE to start" text
-void GameManager::StartGameLogic(float elapsedTime) {
-    if (_GameState == EGameState::Menu) {
-		_SpawnersPaused = true; // ensure spawners are paused on start screen
-        _EngineContext->Clear(mainUIOrange);
+//Main function to spawn a random enemy at a random position around the player, outside the screen bounds.
+void GameManager::SpawnRandomEnemy()
+{
+    static std::mt19937 rng(std::random_device{}());
 
-		if (_OptionsSelected) {
-            _EngineContext->Clear(bgColorNavyBlue);
+    const olc::vf2d playerPos = _Player.GetPosition();
 
-            //Exit Button
-            DrawButton(olc::vi2d(850, 700), olc::vi2d(200, 41), alertUIYellow);
-            _EngineContext->DrawString(855, 715, "EXIT OPTIONS", bgColorNavyBlue, 2);
+    std::uniform_real_distribution<float> angleDist(
+        0.0f,
+        2.0f * 3.14159265f
+    );
 
-			if (ButtonDetection(olc::vi2d(850, 700), olc::vi2d(200, 41))) {
-				_OptionsSelected = false;
-				std::cout << "Exit Options" << std::endl;
-			}
+    float angle = angleDist(rng);
 
-            //EASY BUTTON
-            DrawButton(olc::vi2d(180, 330), olc::vi2d(300, 41), alertUIYellow);
-            _EngineContext->DrawString(200, 350, "Difficulty EASY", bgColorNavyBlue, 2);
-            if (ButtonDetection(olc::vi2d(180, 330), olc::vi2d(300, 41))) {
-				_DifficultyLevel = EDifficultyLevel::Easy;
-            }
+    float spawnDistance =
+        std::max(
+            _EngineContext->ScreenWidth(),
+            _EngineContext->ScreenHeight()
+        ) + 50.0f;
 
-			//MEDIUM BUTTON
-            DrawButton(olc::vi2d(780, 330), olc::vi2d(300, 41), alertUIYellow);
-            _EngineContext->DrawString(800, 350, "Difficulty MEDIUM", bgColorNavyBlue, 2);
-            if (ButtonDetection(olc::vi2d(780, 330), olc::vi2d(300, 41))) {
-				_DifficultyLevel = EDifficultyLevel::Medium;
-            }
+    olc::vf2d spawnPos =
+    {
+        playerPos.x + cosf(angle) * spawnDistance,
+        playerPos.y + sinf(angle) * spawnDistance
+    };
 
-			//HARD BUTTON
-            DrawButton(olc::vi2d(1380, 330), olc::vi2d(300, 41), alertUIYellow);
-            _EngineContext->DrawString(1400, 350, "Difficulty HARD", bgColorNavyBlue, 2);
-            if (ButtonDetection(olc::vi2d(1380, 330), olc::vi2d(300, 41))) {
-				_DifficultyLevel = EDifficultyLevel::Hard;
-            }
-        }
-		else if (!_OptionsSelected) {
-            // Options button
-            _EngineContext->FillRect(900, 200, 120, 41, bgColorNavyBlue);
-            _EngineContext->FillCircle(895, 220, 20, bgColorNavyBlue);
-            _EngineContext->FillCircle(1024, 220, 20, bgColorNavyBlue);
-            _EngineContext->DrawString(905, 215, "OPTIONS", alertUIYellow, 2);
-            _OptionsSelected = ButtonDetection(olc::vi2d(875, 200), olc::vi2d(149, 41));
+    std::uniform_int_distribution<int> enemyTypeDist(0, 1);
 
-            _EngineContext->DrawString(850, 540, "START GAME", bgColorNavyBlue, 3);
-            _EngineContext->DrawString(800, 600, "Press SPACE to start", bgColorNavyBlue, 2);
+    EEnemyType type =
+        static_cast<EEnemyType>(
+            enemyTypeDist(rng));
 
-            // Wait for restart input each frame, allow fade-out when restarting
-            if (_EngineContext->GetKey(olc::Key::SPACE).bPressed) {
-                _GameState = EGameState::Playing;
-                // start the game once
-                StartGame();
-                
-            }
-		}
+    SpawnEnemy(type, spawnPos);
+}
+
+//Spawn an enemy of the specified type at the given position, and add it to the list of active enemies.
+void GameManager::SpawnEnemy(EEnemyType type, const olc::vf2d& position)
+{
+    std::unique_ptr<Ennemies> enemy;
+
+	// Enemy type selection based on random value
+    switch (type)
+    {
+        case EEnemyType::Fast:
+        enemy = std::make_unique<LightEnemy>(position, 12.0f, 20.0f);
+        break;
+
+    case EEnemyType::Basic:
+        enemy = std::make_unique<Ennemies>(position, 20.0f, 50.0f);
+        break;
+
+    case EEnemyType::Tank:
+        //enemy = std::make_unique<FastEnemy>(position);
+        break;
     }
+
+    if (!enemy) return;
+
+    enemy->SetPlayer(&_Player);
+    enemy->SetGameManager(this);
+    enemy->InitializeCollision(&_CollisionManager);
+	enemy->SetPosition(position);
+
+    _Enemies.push_back(std::move(enemy));
 }
 
 void GameManager::EndGameLogic(float elapsedTime) {
-    // Do not reset _IsGameStarted here - keep start state until explicit restart
     // Only increase score during active gameplay (not on start screen or when game over)
     if (_GameState == EGameState::Playing && _Player.GetHealth() > 0) {
-        // Increase score over time, faster if player is doing well
+        // Increase score over time
         float scoreIncrement = elapsedTime * 5.0f; // base increment
         AddScore(scoreIncrement);
     }
@@ -505,11 +438,7 @@ void GameManager::EndGameLogic(float elapsedTime) {
             _IsFadingIn = true;
             _GameOverFade = 0.0f;
         }
-    }
 
-
-
-    if (_GameState == EGameState::GameOver) {
         // advance fade in
         if (_IsFadingIn) {
             _GameOverFade += elapsedTime / _GameOverFadeDuration;
@@ -546,25 +475,17 @@ void GameManager::EndGameLogic(float elapsedTime) {
             if (_GameOverFade <= 0.0f) {
                 _GameOverFade = 0.0f;
                 _IsFadingOut = false;
-                // finish game-over state and return to start screen
-                // Reset transient gameplay state so EndGameLogic won't immediately re-enter GAME OVER
-                _GameState = EGameState::Menu;
-                StartGame(); // clears bullets/enemies and restores player health
-                // but keep spawners paused while on the start screen
+                InitializeGame(); // clears bullets/enemies and restores player health
                 _SpawnersPaused = true;
+				_EngineContext->SetState(EEngineState::Lobby);
             }
         }
     }
 }
 
-void GameManager::StartGame() {
-    //Clear all spawner
-    for (auto& t : _SpawnerTimers) {
-        if (t) t->stop();
-    }
+void GameManager::InitializeGame() {
+    _SpawnersPaused = false;
     _Spawners.clear();
-    _SpawnerTimers.clear();
-    _SpawnRequested.clear();
 
     SetupSpawner();
 
@@ -585,43 +506,21 @@ void GameManager::StartGame() {
     auto& bullets = _Player.GetBullets();
     bullets.clear();
 
-    // Clear enemies in each spawner (protected by mutex)
-    for (auto& sp : _Spawners) {
-        std::lock_guard<std::mutex> lk(sp->GetEnnemiesMutex());
-        auto& enemys = sp->GetEnnemies();
-        enemys.clear();
-    }
-
-    // Reset spawn requests
-    for (auto& req : _SpawnRequested) {
-        if (req) req->store(false);
-    }
-
-    // Resume spawners and timers
-    _SpawnersPaused = false;
+    _Enemies.clear();
 }
 
-//➥ Allow player to shoot the button to select it
-//➥ Check bullets for collision with the button rectangle (in screen pixels)
-const bool GameManager::ButtonDetection(const olc::vi2d& buttonPos, const olc::vi2d& buttonSize) {
-    auto& bullets = _Player.GetBullets();
-    for (auto& b : bullets) {
-        // bullets are in world-space, convert to screen pixels
-        olc::vi2d bPixel = _EngineContext->ConvertWorldPositionToPixels(b.GetPosition());
-        if (bPixel.x >= buttonPos.x && bPixel.x <= buttonPos.x + buttonSize.x &&
-            bPixel.y >= buttonPos.y && bPixel.y <= buttonPos.y + buttonSize.y) {
-            // bullet hit the button: mark for removal and return immediately
-            b.markedForRemoval = true;
-            return true;
-        }
-    }
-    return false;
+//➥ Start the Chtulhu fight by spawning the Chtulhu enemy and setting up any necessary game state for the fight
+void GameManager::StartChtulhuFight() {
+    inBossFight = true;
+    _SpawnersPaused = true; 
+    _Enemies.clear();
+    _PowerUps.clear();
+
+	// Spawn Chtulhu enemy outside the top of the screen, centered horizontally and comming to the top of the screen to be visible
+    _Cthulhu = std::make_unique<Cthulhu>(olc::vf2d(_EngineContext->ScreenWidth()/2,
+        _EngineContext->ScreenHeight() + 25));
 }
 
-//➥ Draw button with curved edges by drawing a rectangle and two circles at the ends, all in the same color
-//➥ Take the Rectangle position and size as parameters, as well as the color to draw the button with the edges
-void GameManager::DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color) {
-    _EngineContext->FillRect(buttonPos.x, buttonPos.y, buttonSize.x, buttonSize.y, color);
-    _EngineContext->FillCircle(buttonPos.x - 5, buttonPos.y + (buttonSize.y/2), (buttonSize.y / 2), color);
-    _EngineContext->FillCircle(buttonPos.x + buttonSize.x + 4, buttonPos.y + (buttonSize.y / 2), (buttonSize.y / 2), color);
+void GameManager::ChtulhuUI() {
+    
 }

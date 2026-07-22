@@ -17,6 +17,7 @@
 #include "../../CollisionManager.h"
 #endif
 #include "external/olc/olcPixelGameEngine.h"
+#include "../../EngineState.h"
 
 class AcademiaEngine;
 class Spawner;
@@ -56,13 +57,7 @@ struct FallingPixel
     float velocity;
 };
 
-enum class EGameState
-{
-    Menu,
-    Playing,
-    GameOver,
-    Exiting
-};
+enum class EGameState { Playing, GameOver };
 
 class GameManager
 {
@@ -75,8 +70,22 @@ public:
     bool Uninitialize();
     void DrawUI();
     void EndGameLogic(float elapsedTime);
-    void StartGameLogic(float elapsedTime);
-    void StartGame();
+    void InitializeGame();
+	void SetDifficultyLevel(EDifficultyLevel level) { _DifficultyLevel = level; }
+	std::string GetDifficultyLevelString() const
+	{
+		switch (_DifficultyLevel)
+		{
+		case EDifficultyLevel::Easy:
+			return "Easy";
+		case EDifficultyLevel::Medium:
+			return "Medium";
+		case EDifficultyLevel::Hard:
+			return "Hard";
+		default:
+			return "Unknown";
+		}
+	}
     const bool ButtonDetection(const olc::vi2d& buttonPos, const olc::vi2d& buttonSize);
     void DrawButton(olc::vi2d buttonPos, olc::vi2d buttonSize, olc::Pixel color);
     void AddScore(float scoreToAdd) { _Score += scoreToAdd; }
@@ -87,8 +96,23 @@ public:
     void AddPowerUpNotification(const std::string& text);
     void StartExitAnimation();
     ~GameManager();
-
+    void SpawnEnemy(
+        EEnemyType type,
+        const olc::vf2d& position);
+    void SpawnRandomEnemy();
+    void StartChtulhuFight();
+    void ChtulhuUI();
     void DrawPowerUpUI();
+
+    EDifficultyLevel NextDifficulty()
+    {
+        int next = static_cast<int>(_DifficultyLevel) + 1;
+
+        if (next > static_cast<int>(EDifficultyLevel::Hard))
+            next = 0;
+
+        return static_cast<EDifficultyLevel>(next);
+    }
 
     //Color used for UI
     const olc::Pixel bgColorNavyBlue = olc::Pixel(18, 52, 74);
@@ -106,7 +130,9 @@ public:
 
     std::vector<PowerUpNotification> _PowerUpNotifications;
     std::vector<FallingPixel> _FallingPixels;
-    EGameState _GameState = EGameState::Menu;
+    EGameState _GameState = EGameState::Playing;
+
+    bool inBossFight = false;
 
 protected:
 
@@ -145,11 +171,10 @@ private:
 
     // Support multiple spawners
     std::vector<std::unique_ptr<Spawner>> _Spawners;
-    std::vector<std::unique_ptr<PeriodicTimer>> _SpawnerTimers;
-    // one atomic flag per spawner to request spawn from the main thread
-    // std::atomic<bool> is not copyable on MSVC; store them via unique_ptr to avoid vector copy issues
     std::vector<std::unique_ptr<std::atomic<bool>>> _SpawnRequested;
     std::vector<std::unique_ptr<PowerUp>> _PowerUps;
+    std::deque<std::unique_ptr<Ennemies>> _Enemies;
+    std::unique_ptr<Ennemies> _Cthulhu;
 #endif
 
 };
