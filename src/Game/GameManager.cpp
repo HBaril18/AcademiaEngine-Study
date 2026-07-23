@@ -203,7 +203,6 @@ void GameManager::Update(float elapsedTime)
 
     // UI code
     // Draw Player health bar
-    _Player.GetPosition();
     olc::vi2d healthBarPos = _EngineContext->ConvertWorldPositionToPixels(_Player.GetPosition()) + olc::vi2d(-20, -30);
     if (_GameState == EGameState::Playing) _EngineContext->FillRect(healthBarPos, olc::vi2d(40, 5), olc::WHITE);
     if (_Player.GetHealth() > 0 && _GameState == EGameState::Playing) {
@@ -213,6 +212,7 @@ void GameManager::Update(float elapsedTime)
     DrawUI();
     DrawPowerUpUI();
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
+
     EndGameLogic(elapsedTime);
 #endif
 }
@@ -519,8 +519,4 @@ void GameManager::StartChtulhuFight() {
 	// Spawn Chtulhu enemy outside the top of the screen, centered horizontally and comming to the top of the screen to be visible
     _Cthulhu = std::make_unique<Cthulhu>(olc::vf2d(_EngineContext->ScreenWidth()/2,
         _EngineContext->ScreenHeight() + 25));
-}
-
-void GameManager::ChtulhuUI() {
-    
 }

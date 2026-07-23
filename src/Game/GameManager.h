@@ -101,7 +101,6 @@ public:
         const olc::vf2d& position);
     void SpawnRandomEnemy();
     void StartChtulhuFight();
-    void ChtulhuUI();
     void DrawPowerUpUI();
 
     EDifficultyLevel NextDifficulty()

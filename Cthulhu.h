@@ -21,6 +21,8 @@ public:
     virtual void Update(AcademiaEngine& engine, float elapsedTime) override;
     virtual void Draw(AcademiaEngine& engine) override;
 
+    void DrawBossHealthBar(AcademiaEngine& engine, float health, float maxHealth);
+
     void UpdateIntro(float elapsedTime, AcademiaEngine& engine);
 	void UpdateOrbit(float elapsedTime);
 	void UpdateSweep(float elapsedTime, AcademiaEngine& engine);

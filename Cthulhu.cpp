@@ -67,6 +67,184 @@ void Cthulhu::Draw(AcademiaEngine& engine)
             (float)Scale
         }
     );
+
+    DrawBossHealthBar(engine, GetHealth(), MaxHealth);
+}
+
+void Cthulhu::DrawBossHealthBar(AcademiaEngine& engine, float health, float maxHealth)
+{
+    // -------------------------------------------------
+    // Bar setup
+    // -------------------------------------------------
+    olc::vi2d barSize = { 760, 24 };
+
+    olc::vi2d barPos =
+    {
+        engine.ScreenWidth() / 2 - barSize.x / 2,
+        75
+    };
+
+    float healthRatio = 0.0f;
+
+    if (maxHealth > 0.0f)
+        healthRatio = health / maxHealth;
+
+    healthRatio = std::clamp(healthRatio, 0.0f, 1.0f);
+
+    int fillWidth = int(float(barSize.x) * healthRatio);
+
+    // -------------------------------------------------
+    // Colors
+    // -------------------------------------------------
+    olc::Pixel darkPanel = olc::Pixel(10, 4, 22);
+    olc::Pixel frameDark = olc::Pixel(45, 10, 80);
+    olc::Pixel purple = olc::Pixel(170, 45, 255);
+    olc::Pixel lightPurple = olc::Pixel(235, 190, 255);
+    olc::Pixel red = olc::Pixel(190, 20, 45);
+    olc::Pixel hotRed = olc::Pixel(255, 45, 85);
+    olc::Pixel lowHealth = olc::Pixel(255, 60, 180);
+    olc::Pixel black = olc::Pixel(0, 0, 0);
+
+    olc::Pixel healthColor = healthRatio < 0.25f ? lowHealth : hotRed;
+
+    // -------------------------------------------------
+    // Shadow behind bar
+    // -------------------------------------------------
+    engine.FillRect(
+        barPos + olc::vi2d(6, 7),
+        barSize,
+        olc::Pixel(0, 0, 0)
+    );
+
+    // -------------------------------------------------
+    // Outer glow / frame
+    // -------------------------------------------------
+    engine.DrawRect(
+        barPos - olc::vi2d(4, 4),
+        barSize + olc::vi2d(8, 8),
+        frameDark
+    );
+
+    engine.DrawRect(
+        barPos - olc::vi2d(2, 2),
+        barSize + olc::vi2d(4, 4),
+        purple
+    );
+
+    engine.DrawRect(
+        barPos - olc::vi2d(1, 1),
+        barSize + olc::vi2d(2, 2),
+        lightPurple
+    );
+
+    // -------------------------------------------------
+    // Dark inner background
+    // -------------------------------------------------
+    engine.FillRect(
+        barPos,
+        barSize,
+        darkPanel
+    );
+
+    // -------------------------------------------------
+    // Health fill
+    // -------------------------------------------------
+    if (fillWidth > 0)
+    {
+        engine.FillRect(
+            barPos,
+            { fillWidth, barSize.y },
+            healthColor
+        );
+
+        // Top highlight on health
+        engine.FillRect(
+            barPos + olc::vi2d(0, 2),
+            { fillWidth, 3 },
+            olc::Pixel(255, 150, 170)
+        );
+
+        // Bottom dark depth
+        engine.FillRect(
+            { barPos.x, barPos.y + barSize.y - 5 },
+            { fillWidth, 4 },
+            olc::Pixel(90, 0, 25)
+        );
+
+        // Bright leading edge
+        engine.DrawLine(
+            { barPos.x + fillWidth, barPos.y + 1 },
+            { barPos.x + fillWidth, barPos.y + barSize.y - 2 },
+            olc::Pixel(255, 220, 240)
+        );
+    }
+
+    // -------------------------------------------------
+    // Segment lines
+    // -------------------------------------------------
+    int segmentCount = 20;
+    int segmentWidth = barSize.x / segmentCount;
+
+    for (int i = 1; i < segmentCount; i++)
+    {
+        int x = barPos.x + i * segmentWidth;
+
+        engine.DrawLine(
+            { x, barPos.y + 3 },
+            { x, barPos.y + barSize.y - 4 },
+            olc::Pixel(20, 4, 35)
+        );
+
+        engine.DrawLine(
+            { x + 1, barPos.y + 3 },
+            { x + 1, barPos.y + barSize.y - 4 },
+            olc::Pixel(120, 35, 170)
+        );
+    }
+
+    // -------------------------------------------------
+    // Inner border
+    // -------------------------------------------------
+    engine.DrawRect(
+        barPos,
+        barSize,
+        olc::Pixel(255, 220, 255)
+    );
+
+    engine.DrawRect(
+        barPos + olc::vi2d(1, 1),
+        barSize - olc::vi2d(2, 2),
+        olc::Pixel(60, 10, 90)
+    );
+
+    // -------------------------------------------------
+    // Boss name
+    // -------------------------------------------------
+    std::string bossName = "Cthulhu Eye";
+
+    olc::vi2d textSize = engine.GetTextSize(bossName);
+
+    olc::vi2d textPos =
+    {
+        engine.ScreenWidth() / 2 - textSize.x,
+        barPos.y - 24
+    };
+
+    // Text shadow
+    engine.DrawString(
+        textPos + olc::vi2d(2, 2),
+        bossName,
+        black,
+        2
+    );
+
+    // Main text
+    engine.DrawString(
+        textPos,
+        bossName,
+        olc::Pixel(245, 220, 255),
+        2
+    );
 }
 
 void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
@@ -309,7 +487,6 @@ void Cthulhu::UpdateDialogue(float elapsedTime) {
     {
         DialogueTimer = 0.0f;
 
-        _DialogueIndex++;
         _DialogueIndex++;
         _VisibleCharacters = 0;
 
