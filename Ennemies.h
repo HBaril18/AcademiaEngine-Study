@@ -10,6 +10,13 @@
 class CollisionManager;
 class GameManager;
 
+enum class BossState
+{
+    Alive,
+    Dying,
+    Dead
+};
+
 /*----------------------------------*/
 //                                  //
 // MADE BY HENRICK BARIL 2026-04-09 //
@@ -35,17 +42,26 @@ public:
         return &engine.RedSlimeSheet;
     }
     virtual bool IsDialogueActive() const { return false; }
-    virtual void DrawDialogue(AcademiaEngine& engine){}
-
-    void SetGameManager(GameManager* gm) { gameManager = gm; }
+    virtual void DrawDialogue(AcademiaEngine& engine, std::vector<std::string> dialogue){}
+    virtual void InitializeCollision(class CollisionManager* collisionManager);
 
     // --- Stats virtuelles ---
     virtual float GetSpeed() const { return 60.0f; }
     virtual float GetDamage() const { return 10.0f; }
     virtual float GetMass()   const { return 1.0f; }
 
-    void InitializeCollision(class CollisionManager* collisionManager);
+    void SetGameManager(GameManager* gm) { gameManager = gm; }
     void ShutdownCollision(class CollisionManager* collisionManager);
+
+    BossState GetState() const { return State; }
+    BossState SetState(BossState state) { State = state; }
+
+    std::vector<std::string> GetIntroDialogue() {
+        return _Dialogue;
+    }
+    std::vector<std::string> GetDeathDialogue() {
+        return _DeathDialogue;
+    }
 
     void AddForce(AcademiaEngine& engine, float force, olc::vf2d direction, float elapsedTime);
 
@@ -76,7 +92,25 @@ protected:
     int Frame = 0;
     float Timer = 0.0f;
     int Scale = 2;
+    BossState State = BossState::Alive;
 
 private:
     Player* player = nullptr;
+
+    //FOR BOSS USAGE
+    std::vector<std::string> _Dialogue = {
+    "...",
+    "I HAVE WATCHED YOU.",
+    "THOUSANDS HAVE FALLEN.",
+    "YOU ARE NO DIFFERENT.",
+    "COME MORTAL."
+    };
+    std::vector<std::string> _DeathDialogue = {
+        "AURGHHHHHHHHHHHHHHHHHHH",
+        "HOW COME WOU'VE DEFEAT ME ?",
+        "YOU MUST BE A GOOD PILOT THEN",
+        "...",
+        "YOUR NOT READY FOR THE REVENGER",
+        "MOUAHAHAHAHAHahahaurgh..."
+    };
 };

@@ -6,24 +6,33 @@ Cthulhu::Cthulhu(olc::vf2d pos)
     _MovementState = CthulhuMovementState::Intro;
 
     Scale = 4;
-    MaxHealth = 500.0f;
+    MaxHealth = 10.0f;
     Health = MaxHealth;
     _MovementStateTimer = 0.0f;
     _DialogueIndex = 0;
     _ShowDialogue = false;
+}
 
-    collider = std::make_unique<Collider>();
-
-    collider->owner = this;
-    collider->position = Position;
-    collider->size = Radius;
-    collider->layer = 2;
-    collider->type = Collider::EColliderType::Circle;
-    collider->enabled = false;
-
-    if (collisionManager) {
-        collisionManager->RegisterCollider(collider.get());
+Cthulhu::~Cthulhu()
+{
+    if (collisionManager && collider)
+    {
+        collisionManager->UnregisterCollider(collider);
     }
+
+    delete collider;
+    collider = nullptr;
+}
+
+void Cthulhu::InitializeCollision(CollisionManager* collisionManager)
+{
+    Ennemies::InitializeCollision(collisionManager);
+
+    if (collider)
+    {
+        collider->enabled = false;
+    }
+    _CanTakeDamage = false;
 }
 
 void Cthulhu::Draw(AcademiaEngine& engine)
@@ -71,6 +80,23 @@ void Cthulhu::Draw(AcademiaEngine& engine)
     DrawBossHealthBar(engine, GetHealth(), MaxHealth);
 }
 
+void Cthulhu::TakeDamage(float damage, float elapsedTime)
+{
+	if (_CanTakeDamage)
+	{
+		Health -= damage;
+		Health = std::max(Health, 0.0f);
+	}
+    if (Health <= 0.0f && State == BossState::Alive) {
+        Health = 0.0f;
+        Player* p = GetPlayer();
+        p->AddScore(1500.0f);
+
+        // disable collider immediately to avoid further collision processing
+        if (collider) collider->enabled = false;
+    }
+}
+
 void Cthulhu::DrawBossHealthBar(AcademiaEngine& engine, float health, float maxHealth)
 {
     // -------------------------------------------------
@@ -92,6 +118,8 @@ void Cthulhu::DrawBossHealthBar(AcademiaEngine& engine, float health, float maxH
     healthRatio = std::clamp(healthRatio, 0.0f, 1.0f);
 
     int fillWidth = int(float(barSize.x) * healthRatio);
+
+    bool danger = healthRatio < 0.25f;
 
     // -------------------------------------------------
     // Colors
@@ -136,6 +164,21 @@ void Cthulhu::DrawBossHealthBar(AcademiaEngine& engine, float health, float maxH
         barSize + olc::vi2d(2, 2),
         lightPurple
     );
+
+	if (danger) //ADD MORE EFFECTS WHEN LOW HEALTH
+    {
+        engine.DrawRect(
+            barPos - olc::vi2d(6, 6),
+            barSize + olc::vi2d(12, 12),
+            olc::Pixel(255, 40, 160)
+        );
+
+        engine.DrawRect(
+            barPos - olc::vi2d(8, 8),
+            barSize + olc::vi2d(16, 16),
+            olc::Pixel(120, 0, 80)
+        );
+    }
 
     // -------------------------------------------------
     // Dark inner background
@@ -249,6 +292,28 @@ void Cthulhu::DrawBossHealthBar(AcademiaEngine& engine, float health, float maxH
 
 void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
 {
+    if (Health <= 0 && State == BossState::Alive)
+    {
+        State = BossState::Dying;
+        _DeathTimer = 17.0f; // seconds
+        _DialogueIndex = 0;
+        _VisibleCharacters = 0;
+        _ShowDialogue = true;
+    }
+
+    if (State == BossState::Dying)
+    {
+        _DeathTimer -= elapsedTime;
+
+        if (_DeathTimer <= 0.0f)
+            State = BossState::Dead;
+
+        if (Health <= 0 && State == BossState::Alive)
+        {
+            State = BossState::Dying;
+        }
+    }
+
     if (_MovementState != CthulhuMovementState::Intro &&
         !_ShowDialogue)
     {
@@ -258,43 +323,55 @@ void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
         {
             _MovementStateTimer = 0.0f;
 
-            int next = 1 + rand() % 5;
+            int next = 1 + rand() % 4;
 
             _MovementState =
                 static_cast<CthulhuMovementState>(next);
         }
     }
 
+    if (State == BossState::Dying)
+    {
+        UpdateDialogue(elapsedTime, GetDeathDialogue());
+
+        if (!_ShowDialogue)
+        {
+            State = BossState::Dead;
+        }
+
+        return;
+    }
+
     switch (_MovementState)
     {
     case CthulhuMovementState::Intro:
-        collider->enabled = false;
+        _CanTakeDamage = false;
+        SetColliderEnabled(false);
         UpdateIntro(elapsedTime, engine);
         break;
 
     case CthulhuMovementState::Orbit:
-        collider->enabled = true;
+        _CanTakeDamage = true;
+        SetColliderEnabled(true);
         UpdateOrbit(elapsedTime);
         break;
 
     case CthulhuMovementState::Sweep:
-        collider->enabled = true;
+        _CanTakeDamage = true;
+        SetColliderEnabled(true);
         UpdateSweep(elapsedTime, engine);
         break;
 
-    case CthulhuMovementState::Figure8:
-        collider->enabled = true;
-        UpdateFigure8(elapsedTime);
-        break;
-
     case CthulhuMovementState::Teleport:
-        collider->enabled = true;
+        _CanTakeDamage = true;
+        SetColliderEnabled(true);
         UpdateTeleport(elapsedTime);
         break;
 
     case CthulhuMovementState::Summon:
-        collider->enabled = false;
-        UpdateSummons(elapsedTime);
+        _CanTakeDamage = false;
+        SetColliderEnabled(false);
+        UpdateSummons(elapsedTime, engine);
         break;
     }
 
@@ -313,42 +390,22 @@ void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
 
     constexpr float PI = 3.14159265f;
 
-    // Figure8 = look along movement
-    if (_MovementState == CthulhuMovementState::Figure8)
+    olc::vf2d toPlayer =
+        GetPlayer()->GetPosition() - Position;
+
+    if (toPlayer.mag() > 0.1f)
     {
-        olc::vf2d velocity =
-            Position - _PreviousPosition;
-
-        if (velocity.mag() > 0.1f)
-        {
-            velocity = velocity.norm();
-
-            _LookAngle =
-                atan2f(
-                    -velocity.y,
-                    velocity.x
-                ) + PI;
-        }
-    }
-    // All other states = look at player
-    else
-    {
-        olc::vf2d toPlayer =
-            GetPlayer()->GetPosition() - Position;
-
-        if (toPlayer.mag() > 0.1f)
-        {
-            toPlayer = toPlayer.norm();
-
-            _LookAngle =
-                atan2f(-toPlayer.y, toPlayer.x) + PI;
-        }
+        toPlayer = toPlayer.norm();
+        _LookAngle =
+            atan2f(-toPlayer.y, toPlayer.x) + PI;
     }
 
     _PreviousPosition = Position;
 
     if (collider)
         collider->position = Position;
+
+
 }
 
 void Cthulhu::UpdateIntro(float elapsedTime, AcademiaEngine & engine)
@@ -407,7 +464,7 @@ void Cthulhu::UpdateIntro(float elapsedTime, AcademiaEngine & engine)
 
         if (_ShowDialogue)
         {
-            UpdateDialogue(elapsedTime);
+            UpdateDialogue(elapsedTime, GetIntroDialogue());
         }
     }
 }
@@ -417,7 +474,7 @@ bool Cthulhu::IsDialogueActive() const
     return _ShowDialogue;
 }
 
-void Cthulhu::DrawDialogue(AcademiaEngine& engine)
+void Cthulhu::DrawDialogue(AcademiaEngine& engine, std::vector<std::string> dialogue)
 {
     if (!_ShowDialogue)
         return;
@@ -449,10 +506,10 @@ void Cthulhu::DrawDialogue(AcademiaEngine& engine)
     );
 
     // Current line
-    if (_DialogueIndex < _Dialogue.size())
+    if (_DialogueIndex < dialogue.size())
     {
         std::string visibleText =
-            _Dialogue[_DialogueIndex].substr(
+            dialogue[_DialogueIndex].substr(
                 0,
                 _VisibleCharacters
             );
@@ -467,7 +524,13 @@ void Cthulhu::DrawDialogue(AcademiaEngine& engine)
     }
 }
 
-void Cthulhu::UpdateDialogue(float elapsedTime) {
+void Cthulhu::UpdateDialogue(float elapsedTime, std::vector<std::string> dialogue) {
+    if (_DialogueIndex >= dialogue.size())
+    {
+        _ShowDialogue = false;
+        return;
+    }
+
     DialogueTimer += elapsedTime;
 
     _CharacterTimer += elapsedTime;
@@ -477,7 +540,7 @@ void Cthulhu::UpdateDialogue(float elapsedTime) {
         _CharacterTimer = 0.0f;
 
         if (_VisibleCharacters <
-            _Dialogue[_DialogueIndex].size())
+            dialogue[_DialogueIndex].size())
         {
             _VisibleCharacters++;
         }
@@ -490,7 +553,7 @@ void Cthulhu::UpdateDialogue(float elapsedTime) {
         _DialogueIndex++;
         _VisibleCharacters = 0;
 
-        if (_DialogueIndex >= _Dialogue.size())
+        if (_DialogueIndex >= dialogue.size())
         {
             _ShowDialogue = false;
             _MovementState = CthulhuMovementState::Orbit;
@@ -581,7 +644,6 @@ void Cthulhu::UpdateFigure8(float elapsedTime)
 
 void Cthulhu::UpdateTeleport(float elapsedTime)
 {
-    std::cout << "Cthulhu::UpdateTeleport\n";
     _TeleportTimer += elapsedTime;
 
     if (_TeleportTimer >= 2.0f)
@@ -601,7 +663,7 @@ void Cthulhu::UpdateTeleport(float elapsedTime)
         auto playerPos =
             GetPlayer()->GetPosition();
 
-        Position =
+		Position = //SHOULD BE AWARE OF SCREEN BOUNDS !!!!!
         {
             playerPos.x +
             cosf(angle) * 350.0f,
@@ -612,26 +674,177 @@ void Cthulhu::UpdateTeleport(float elapsedTime)
     }
 }
 
-void Cthulhu::UpdateSummons(float elapsedTime)
+void Cthulhu::UpdateSummons(float elapsedTime, AcademiaEngine& engine)
 {
-    std::cout << "Cthulhu::UpdateSummons\n";
     _SummonTimer += elapsedTime;
 
-    if (_SummonTimer >= 8.0f)
+    if (_SummonTimer >= 6.0f)
     {
         _SummonTimer = 0.0f;
 
-        if (gameManager)
+		if (gameManager)
         {
-            gameManager->SpawnEnemy(
-                EEnemyType::Basic,
-                Position +
-                olc::vf2d(80.0f, 0.0f));
-
-            gameManager->SpawnEnemy(
-                EEnemyType::Fast,
-                Position +
-                olc::vf2d(-80.0f, 0.0f));
+			//Randomly spawn enemies around Cthulhu
+            SummonEnemiesAround(engine);
         }
     }
+}
+
+void Cthulhu::SummonEnemiesAround(AcademiaEngine& engine)
+{
+    if (!gameManager)
+        return;
+
+    std::vector<olc::vf2d> plannedPositions;
+
+    int enemyCount = 4;
+
+    float minDistance = 120.0f;
+    float maxDistance = 280.0f;
+    float spawnRadius = 22.0f;
+
+    for (int i = 0; i < enemyCount; i++)
+    {
+        olc::vf2d spawnPos;
+
+        bool foundPosition =
+            TryGetRandomSpawnPositionAround(
+                engine,
+                minDistance,
+                maxDistance,
+                spawnRadius,
+                plannedPositions,
+                spawnPos
+            );
+
+        if (!foundPosition)
+        {
+            continue;
+        }
+
+        plannedPositions.push_back(spawnPos);
+
+        EEnemyType enemyType = EEnemyType::Basic;
+
+        if (rand() % 3 == 0)
+            enemyType = EEnemyType::Fast;
+
+        gameManager->SpawnEnemy(enemyType, spawnPos);
+    }
+}
+
+olc::vf2d Cthulhu::GetRandomPointAround(float minDistance, float maxDistance) {
+    constexpr float PI = 3.14159265f;
+
+    float angle = RandomFloat(0.0f, PI * 2.0f);
+
+    // Better distribution than simple random distance
+    float minD2 = minDistance * minDistance;
+    float maxD2 = maxDistance * maxDistance;
+    float distance = std::sqrt(RandomFloat(minD2, maxD2));
+
+    return Position + olc::vf2d(
+        std::cos(angle) * distance,
+        std::sin(angle) * distance
+    );
+}
+
+bool Cthulhu::IsSpawnPositionValid(
+    AcademiaEngine& engine,
+    const olc::vf2d& spawnPos,
+    float spawnRadius,
+    const std::vector<olc::vf2d>& plannedPositions
+)
+{
+    // Keep inside screen
+    float margin = 40.0f;
+
+    olc::vi2d pixelSpawnPos = engine.ConvertWorldPositionToPixels(spawnPos);
+
+    if (pixelSpawnPos.x < margin || pixelSpawnPos.x > engine.ScreenWidth() - margin)
+        return false;
+
+    if (pixelSpawnPos.y < margin || pixelSpawnPos.y > engine.ScreenHeight() - margin)
+        return false;
+
+    // Do not spawn too close to player
+    if (GetPlayer())
+    {
+        if (CirclesOverlap(
+            spawnPos,
+            spawnRadius,
+            GetPlayer()->GetPosition(),
+            120.0f
+        ))
+        {
+            return false;
+        }
+    }
+
+    // Do not overlap existing enemies
+    if (gameManager)
+    {
+        for (auto& enemy : gameManager->GetEnemies())
+        {
+            if (!enemy)
+                continue;
+
+            if (CirclesOverlap(
+                spawnPos,
+                spawnRadius,
+                enemy->GetPosition(),
+                enemy->GetRadius() + 20.0f
+            ))
+            {
+                return false;
+            }
+        }
+    }
+
+    // Do not overlap enemies planned in this same summon wave
+    for (const auto& plannedPos : plannedPositions)
+    {
+        if (CirclesOverlap(
+            spawnPos,
+            spawnRadius,
+            plannedPos,
+            spawnRadius + 25.0f
+        ))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Cthulhu::TryGetRandomSpawnPositionAround(
+    AcademiaEngine& engine,
+    float minDistance,
+    float maxDistance,
+    float spawnRadius,
+    const std::vector<olc::vf2d>& plannedPositions,
+    olc::vf2d& outPosition
+)
+{
+    constexpr int maxAttempts = 40;
+
+    for (int attempt = 0; attempt < maxAttempts; attempt++)
+    {
+        olc::vf2d candidate =
+            GetRandomPointAround(minDistance, maxDistance);
+
+        if (IsSpawnPositionValid(
+            engine,
+            candidate,
+            spawnRadius,
+            plannedPositions
+        ))
+        {
+            outPosition = candidate;
+            return true;
+        }
+    }
+
+    return false;
 }

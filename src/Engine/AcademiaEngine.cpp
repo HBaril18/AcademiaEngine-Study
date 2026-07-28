@@ -9,6 +9,7 @@ AcademiaEngine::AcademiaEngine()
 }
 
 bool AcademiaEngine::OnUserCreate(){
+    srand(static_cast<unsigned int>(time(nullptr)));
     SetPixelMode(olc::Pixel::ALPHA);
     RedSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     YellowSlimeSheet.SetSampleMode(olc::Sprite::Mode::NORMAL);

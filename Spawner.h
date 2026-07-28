@@ -11,6 +11,7 @@ class AcademiaEngine;
 class Spawner
 {
 public:
+    Spawner();
     void SetGameManager(GameManager* gm) { gameManager = gm; }
 
     void Update(AcademiaEngine& engine, float elapsedTime);

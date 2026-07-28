@@ -3,7 +3,7 @@
 #include "Bullet.h"
 #include "PowerUpType.h"
 #include <vector>
-#include <deque>
+#include <list>
 
 // Forward declaration
 class GameManager;
@@ -46,7 +46,7 @@ public:
     olc::vf2d GetCursorPosition(AcademiaEngine& engine) const;
 	olc::vf2d GetPlayerDirection(AcademiaEngine& engine) const;
 	void SpawnBullet(AcademiaEngine& engine);
-	std::deque<Bullet>& GetBullets() { return bullets; }
+	std::list<Bullet>& GetBullets() { return bullets; }
 	void Update(AcademiaEngine& engine, float elapsedTime);
 	void UpdateBullets(AcademiaEngine& engineContext);
 	void TakeDamage(float damage) { Health = Health - damage; }
@@ -84,7 +84,7 @@ protected:
 	int Shield = 0;
     float Radius = 20.0f;
 	olc::Pixel Color = olc::Pixel(46, 230, 214);
-    std::deque<Bullet> bullets;
+	std::list<Bullet> bullets;
 	float Health = 100.0f;
 	float Damage = 10.0f;
 	GameManager* gameManager = nullptr;

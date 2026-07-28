@@ -14,6 +14,12 @@
 
 #include <random>
 
+Spawner::Spawner()
+{
+    SpawnInterval = 1.0f;
+    SpawnTimer = SpawnInterval;
+}
+
 void Spawner::Update(AcademiaEngine& engine, float elapsedTime)
 {
     SpawnTimer += elapsedTime;
@@ -30,7 +36,7 @@ void Spawner::Update(AcademiaEngine& engine, float elapsedTime)
         static std::mt19937 rng(std::random_device{}());
 
         std::uniform_real_distribution<float>
-            nextSpawn(3.0f, 10.0f);
+            nextSpawn(1.0f, 6.0f);
 
         SpawnInterval = nextSpawn(rng);
     }

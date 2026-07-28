@@ -8,26 +8,162 @@
 #include "PowerUp.h"
 #include <memory>
 
+/*=================NEW=====================*/
+CellKey CollisionManager::GetCell(
+	const olc::vf2d& pos)
+{
+	return
+	{
+		static_cast<int>(
+			floor(pos.x / CELL_SIZE)
+		),
+
+		static_cast<int>(
+			floor(pos.y / CELL_SIZE)
+		)
+	};
+}
+
+void CollisionManager::BuildGrid()
+{
+	grid.clear();
+
+	for (Collider* collider : colliders)
+	{
+		if (!collider)
+			continue;
+
+		if (!collider->enabled)
+			continue;
+
+		float r = collider->size;
+
+		float minX = collider->position.x - r;
+		float maxX = collider->position.x + r;
+
+		float minY = collider->position.y - r;
+		float maxY = collider->position.y + r;
+
+		int startCellX =
+			static_cast<int>(std::floor(minX / CELL_SIZE));
+
+		int endCellX =
+			static_cast<int>(std::floor(maxX / CELL_SIZE));
+
+		int startCellY =
+			static_cast<int>(std::floor(minY / CELL_SIZE));
+
+		int endCellY =
+			static_cast<int>(std::floor(maxY / CELL_SIZE));
+
+		for (int y = startCellY; y <= endCellY; y++)
+		{
+			for (int x = startCellX; x <= endCellX; x++)
+			{
+				grid[{x, y}].push_back(collider);
+			}
+		}
+	}
+}
+
+/*std::vector<Collider*>
+CollisionManager::GetNearbyColliders(
+	const olc::vf2d& position)
+{
+	std::vector<Collider*> result;
+
+	CellKey center =
+		GetCell(position);
+
+	for (int y = -1; y <= 1; y++)
+	{
+		for (int x = -1; x <= 1; x++)
+		{
+			CellKey key =
+			{
+				center.x + x,
+				center.y + y
+			};
+
+			auto it =
+				grid.find(key);
+
+			if (it == grid.end())
+				continue;
+
+			result.insert(
+				result.end(),
+				it->second.begin(),
+				it->second.end()
+			);
+		}
+	}
+
+	return result;
+}*/
+std::vector<Collider*> CollisionManager::GetNearbyColliders(
+	const olc::vf2d& position)
+{
+	std::vector<Collider*> result;
+	std::unordered_set<Collider*> seen;
+
+	CellKey center = GetCell(position);
+
+	for (int y = -1; y <= 1; y++)
+	{
+		for (int x = -1; x <= 1; x++)
+		{
+			CellKey key =
+			{
+				center.x + x,
+				center.y + y
+			};
+
+			auto it = grid.find(key);
+
+			if (it == grid.end())
+				continue;
+
+			for (Collider* c : it->second)
+			{
+				if (seen.insert(c).second)
+				{
+					result.push_back(c);
+				}
+			}
+		}
+	}
+
+	return result;
+}
+/*=========================================*/
+
 void CollisionManager::RegisterCollider(Collider* collider)
 {
-	// Implementation for registering a collider
-	if (!collider) {
-		return; // Handle null pointer case
-	}
+	std::cout
+		<< "REGISTER "
+		<< collider
+		<< std::endl;
+
 	colliders.push_back(collider);
 }
 
 void CollisionManager::RemoveBullet(Bullet* b)
 {
-	if (!b) return;
-	// If collider exists and is enabled, disable it immediately to prevent multiple hits in same update pass
-	if (b->collider) {
-		if (!b->collider->enabled) return; // already scheduled/disabled
-		b->collider->enabled = false;
-	}
-	// mark for removal immediately to help other systems detect it's gone
+	std::cout
+		<< "RemoveBullet bullet=" << b
+		<< std::endl;
+
+	if (!b)
+		return;
+
+	if (b->markedForRemoval)
+		return;
+
 	b->markedForRemoval = true;
-	pendingBulletRemovals.push_back(b);
+
+	if (b->collider)
+		b->collider->enabled = false;
 }
 
 void CollisionManager::RemoveColliderPowerUp(PowerUp* p)
@@ -115,6 +251,10 @@ std::vector<PowerUp*> CollisionManager::GetPowerUp()
 
 void CollisionManager::UnregisterCollider(Collider* collider)
 {
+	std::cout
+		<< "UNREGISTER "
+		<< collider
+		<< std::endl;
 	// Implementation for unregistering a collider
 	if (!collider) {
 		return; // Handle null pointer case
@@ -127,33 +267,63 @@ void CollisionManager::UnregisterCollider(Collider* collider)
 
 void CollisionManager::Update(float elapsedTime)
 {
-	// Implementation for updating collisions
+	std::unordered_set<uint64_t> processedPairs;
+
+	int bulletCount = 0;
+	int enemyCount = 0;
+
+	for (auto* c : colliders)
+	{
+		if (c->layer == 2) enemyCount++;
+		if (c->layer == 3) bulletCount++;
+	}
+
+	BuildGrid();
 	int collCount = static_cast<int>(colliders.size());
-	for (int i = 0; i < collCount; ++i) {
-		for (int j = i + 1; j < collCount; ++j) {
-			Collider* colliderA = colliders[i];
-			Collider* colliderB = colliders[j];
-			if (!colliderA || !colliderB) continue;
-			// Check if both colliders are enabled
+	for (Collider* colliderA : colliders)
+	{
+		if (!colliderA->enabled)
+			continue;
+
+		auto nearby =
+			GetNearbyColliders(
+				colliderA->position);
+
+		for (Collider* colliderB :
+			nearby)
+		{
+			//CHECKS IF ITS NOT THE SAME COLLIDER
+			if (colliderA == colliderB)
+				continue;
+
+			uintptr_t low =
+				reinterpret_cast<uintptr_t>(
+					std::min(colliderA, colliderB));
+
+			uintptr_t high =
+				reinterpret_cast<uintptr_t>(
+					std::max(colliderA, colliderB));
+
+			uint64_t key =
+				((uint64_t)low) ^
+				(((uint64_t)high) << 1);
+
+			if (!processedPairs.insert(key).second)
+			{
+				continue;
+			}
+
+			//BASICS CHECKS
 			if (!colliderA->enabled || !colliderB->enabled) continue;
 			if (colliderA->owner == nullptr || colliderB->owner == nullptr) continue;
-			if (!player) continue; // player must be set to handle player collision
-
-			// layer bounds check
+			if (!player) continue;
 			if (colliderA->layer < 0 || colliderA->layer >= 4 || colliderB->layer < 0 || colliderB->layer >= 4) continue;
-
-			const bool collisionMatrix[4][4] = {
-				//0     1      2      3
-				{false, true, false, false}, // 0 PowerUp
-				{true, false, true,  false}, // 1 Player
-				{false, true,  false, true }, // 2 Enemy
-				{false, false, true,  false}  // 3 Bullet
-			};
 
 			int a = colliderA->layer;
 			int b = colliderB->layer;
 			if (!collisionMatrix[a][b]) continue;
 
+			//SWEEP TEST FOR FAST BULLETS
 			// Circle vs Circle collision logic
 			if (colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Circle) {
 				olc::vf2d delta = colliderB->position - colliderA->position;
@@ -171,6 +341,13 @@ void CollisionManager::Update(float elapsedTime)
 						if (a == 2) { enemy = static_cast<Ennemies*>(colliderA->owner); bullet = static_cast<Bullet*>(colliderB->owner); }
 						else { enemy = static_cast<Ennemies*>(colliderB->owner); bullet = static_cast<Bullet*>(colliderA->owner); }
 						if (enemy && bullet) {
+							if (!bullet ||
+								bullet->markedForRemoval ||
+								!bullet->collider ||
+								!bullet->collider->enabled)
+							{
+								continue;
+							}
 							// segment from previousPosition to current Position
 							olc::vf2d p1 = bullet->GetPreviousPosition();
 							olc::vf2d p2 = bullet->GetPosition();
@@ -182,7 +359,12 @@ void CollisionManager::Update(float elapsedTime)
 								t = std::fmax(0.0f, std::fmin(1.0f, t));
 								olc::vf2d closest = p1 + d * t;
 								float dist2 = (closest - c).mag2();
-								if (dist2 < enemy->GetRadius() * enemy->GetRadius()) {
+								float radius =
+									enemy->GetRadius() +
+									bullet->GetRadius();
+
+								if (dist2 < radius * radius)
+								{
 									overlap = true;
 								}
 							}
@@ -225,32 +407,53 @@ void CollisionManager::Update(float elapsedTime)
 						}
 					}
 					// Enemy-Bullet
-					else if ((a == 2 && b == 3) || (a == 3 && b == 2)) {
+					else if ((a == 2 && b == 3) || (a == 3 && b == 2))
+					{
 						Ennemies* enemy = nullptr;
 						Bullet* bullet = nullptr;
-						if (a == 2) {
+
+						if (a == 2)
+						{
 							enemy = static_cast<Ennemies*>(colliderA->owner);
 							bullet = static_cast<Bullet*>(colliderB->owner);
-						} else {
+						}
+						else
+						{
 							enemy = static_cast<Ennemies*>(colliderB->owner);
 							bullet = static_cast<Bullet*>(colliderA->owner);
 						}
-						if (enemy) {
-							enemy->TakeDamage(10.0f * player->GetDamageMultiplier(), elapsedTime);
+
+						if (!enemy || !bullet)
+							continue;
+
+						if (bullet->markedForRemoval ||
+							!bullet->collider ||
+							!bullet->collider->enabled)
+						{
+							continue;
 						}
-						if (bullet) {
-							RemoveBullet(bullet);
-						}
+
+						std::cout
+							<< "Damage bullet=" << bullet
+							<< std::endl;
+
+						enemy->TakeDamage(
+							10.0f * player->GetDamageMultiplier(),
+							elapsedTime
+						);
+
+						RemoveBullet(bullet);
+						break;
 					}
 					// Player-PowerUp
 					else if ((a == 1 && b == 0) || (a == 0 && b == 1)) {
 						Player* player = nullptr;
 						PowerUp* powerUp = nullptr;
-						if (a == 1){
+						if (a == 1) {
 							player = static_cast<Player*>(colliderA->owner);
 							powerUp = static_cast<PowerUp*>(colliderB->owner);
 						}
-						else{
+						else {
 							powerUp = static_cast<PowerUp*>(colliderA->owner);
 							player = static_cast<Player*>(colliderB->owner);
 						}
@@ -264,44 +467,8 @@ void CollisionManager::Update(float elapsedTime)
 					}
 				}
 			}
-
-			// Box vs Box
-			if (colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Box) {
-				olc::vf2d delta = colliderB->position - colliderA->position;
-				if (std::abs(delta.x) < (colliderA->size + colliderB->size) &&
-					std::abs(delta.y) < (colliderA->size + colliderB->size)) {
-					// Handle collision response here if needed
-				}
-			}
-
-			// Circle vs Box
-			if ((colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Box) ||
-				(colliderA->type == Collider::EColliderType::Box && colliderB->type == Collider::EColliderType::Circle)) {
-				Collider* circleCollider = (colliderA->type == Collider::EColliderType::Circle) ? colliderA : colliderB;
-				Collider* boxCollider = (colliderA->type == Collider::EColliderType::Box) ? colliderA : colliderB;
-				olc::vf2d delta = circleCollider->position - boxCollider->position;
-				olc::vf2d halfSize = { boxCollider->size, boxCollider->size };
-				olc::vf2d closestPoint = delta.clamp(-halfSize, halfSize);
-				olc::vf2d difference = delta - closestPoint;
-				float distanceSquared = difference.mag2();
-				if (distanceSquared < circleCollider->size * circleCollider->size) {
-					// Handle collision response here if needed
-				}
-			}
+			/*CONTINUE HERE*/
 		}
-	}
-
-	// apply pending bullet removals after collision pass (safe: not modifying colliders during iteration)
-	if (!pendingBulletRemovals.empty()) {
-		for (auto* b : pendingBulletRemovals) {
-			if (!b) continue;
-			if (b->collider) {
-				UnregisterCollider(b->collider);
-				// mark for removal on the bullet itself to let owner erase safely
-				b->markedForRemoval = true;
-			}
-		}
-		pendingBulletRemovals.clear();
 	}
 
 	for (auto* p : pendingPowerUpRemovals)

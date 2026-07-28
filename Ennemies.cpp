@@ -26,16 +26,6 @@ Ennemies::Ennemies(olc::vf2d pos, float radius, float maxH)
         collisionManager->RegisterCollider(collider.get());
     }
 }
-
-void Ennemies::SetPlayer(Player* p)
-{
-    player = p;
-}
-
-void Ennemies::SetMaxHealth(float h) {
-    MaxHealth = h;
-}
-
 Ennemies::Ennemies()
 {
     // unique_ptr default null
@@ -45,6 +35,15 @@ Ennemies::Ennemies()
     Radius = 15.0f;
     Color = olc::DARK_BLUE;
     Health = MaxHealth;
+}
+
+void Ennemies::SetPlayer(Player* p)
+{
+    player = p;
+}
+
+void Ennemies::SetMaxHealth(float h) {
+    MaxHealth = h;
 }
 
 void Ennemies::InitializeCollision(CollisionManager* collisionManager)
@@ -175,19 +174,19 @@ void Ennemies::RemoveEnnemie(
 }
 
 void Ennemies::SpawnPowerUp(AcademiaEngine& engine) {
-	//Random number to spawn different types of powerups
+    //Random number to spawn different types of powerups
     //Each powerup has different chances to spawn
-	float temp = (float)(rand() % 100) / 100.0f;
+    float temp = (float)(rand() % 100) / 100.0f;
     auto p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Shield);
-	if (temp < 0.5f) {
+    if (temp < 0.5f) {
         p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Heal);
-	}
-	else if (temp < 0.7f) {
+    }
+    else if (temp < 0.7f) {
         p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Speed);
-	}
-	else if (temp < 0.9f) {
+    }
+    else if (temp < 0.9f) {
         p = std::make_unique<PowerUp>(Position, Radius, PowerUpType::Damage);
-	}
+    }
 
     p->sprite = &engine.PowerUpSheet;
     p->decal = new olc::Decal(p->sprite);
@@ -202,6 +201,10 @@ void Ennemies::SpawnPowerUp(AcademiaEngine& engine) {
     if (p->collider)
     {
         p->collider->position = p->GetPosition();
+    }
+    if (gameManager) 
+    {
+        p->SetGameManager(gameManager);
     }
     gameManager->GetPowerUpList().push_back(std::move(p));
 }

@@ -102,6 +102,15 @@ public:
     void SpawnRandomEnemy();
     void StartChtulhuFight();
     void DrawPowerUpUI();
+    void ResumeGame();
+    void DrawPlayerHealthBar(AcademiaEngine* engineContext);
+
+    const std::deque<std::unique_ptr<Ennemies>>& GetEnemies() const 
+    {
+        return _Enemies;
+    }
+	void ClearEnnemyPtrs();
+	void ClearPowerUpPtrs();
 
     EDifficultyLevel NextDifficulty()
     {
@@ -149,7 +158,7 @@ private:
     // Game over transition (fade) parameters
     //➥ 0.0 = no overlay, 1.0 = full overlay
     float _GameOverFade = 0.0f; 
-    float _GameOverFadeDuration = 1.0f; // seconds for fade in/out
+    float _GameOverFadeDuration = 3.0f; // seconds for fade in/out
     bool _IsFadingIn = false;
     bool _IsFadingOut = false;
     bool _OptionsSelected = false;

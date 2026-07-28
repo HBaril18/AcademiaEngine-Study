@@ -132,7 +132,12 @@ void Player::SpawnBullet(AcademiaEngine& engine) {
     else
         direction = { 1.0f, 0.0f }; // default direction
     bullet.SetDirection(direction);
-    //std::cout << "Bullet deque" << bullets.size() << std::endl;
+    std::cout
+        << "Spawn bullet "
+        << &bullets.back()
+        << " total="
+        << bullets.size()
+        << std::endl;
 }
 
 olc::vf2d Player::GetPlayerDirection(AcademiaEngine& engine) const {
@@ -164,33 +169,53 @@ olc::vf2d Player::GetCursorPosition(AcademiaEngine& engine) const {
     return cursorWorldPos;
 }
 
-void Player::UpdateBullets(AcademiaEngine& engineContext) {
-    // remove bullets that are out of screen or whose colliders are disabled
-    bullets.erase(
-        std::remove_if(bullets.begin(), bullets.end(),
-            [&](Bullet& bullet) {
-                // Remove bullets explicitly flagged for removal (e.g., hit UI)
-                if (bullet.markedForRemoval) {
-                    if (collisionManager && bullet.collider) bullet.ShutdownCollision(collisionManager);
-                    return true;
-                }
-                // If player has a collision manager, shutdown bullet collision before removal
-                if (collisionManager && bullet.collider && !bullet.collider->enabled) {
-                    // ensure we only shutdown once
-                    Bullet* bptr = &bullet;
-                    bullet.ShutdownCollision(collisionManager);
-                    std::cout << "Player: Removed bullet from deque " << bptr << std::endl;
-                    return true;
-                }
-                olc::vi2d pixel = engineContext.ConvertWorldPositionToPixels(bullet.GetPosition());
+void Player::UpdateBullets(AcademiaEngine& engineContext)
+{
+    for (auto it = bullets.begin(); it != bullets.end(); )
+    {
+        Bullet& bullet = *it;
 
-                bool out = pixel.x < 0 || pixel.x > engineContext.ScreenWidth() ||
-                    pixel.y < 0 || pixel.y > engineContext.ScreenHeight();
-                if (out && collisionManager) bullet.ShutdownCollision(collisionManager);
-                return out;
-             }),
-         bullets.end()
-     );
+        bool shouldRemove = false;
+
+        if (bullet.markedForRemoval)
+        {
+            shouldRemove = true;
+        }
+        else
+        {
+            olc::vi2d pixel =
+                engineContext.ConvertWorldPositionToPixels(
+                    bullet.GetPosition());
+
+            bool out =
+                pixel.x < 0 ||
+                pixel.x > engineContext.ScreenWidth() ||
+                pixel.y < 0 ||
+                pixel.y > engineContext.ScreenHeight();
+
+            if (out)
+                shouldRemove = true;
+        }
+
+        if (shouldRemove)
+        {
+            if (collisionManager && bullet.collider)
+            {
+                bullet.ShutdownCollision(collisionManager);
+            }
+
+            std::cout
+                << "Deleting bullet "
+                << &bullet
+                << std::endl;
+
+            it = bullets.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
 }
 
 void Player::AddScore(float scoreToAdd) {

@@ -58,26 +58,18 @@ void GameManager::Update(float elapsedTime)
     const olc::HWButton sneakButton = _EngineContext->GetKey(shiftKey);
     const olc::HWButton escapeButton = _EngineContext->GetKey(escapeKey);
 
-    // This is very good, I don't like input code, it looks ugly I find :p, but there is no better way than this. Good Job :) 
-    if (escapeButton.bPressed) { 
+    /*CONTROLS*/
+    if (escapeButton.bPressed) {
         StartExitAnimation();
 
     }
     if (moveRightButton.bHeld) { x += 1.0f; }
-    if (moveLeftButton.bHeld)  { x -= 1.0f; }
-    if (moveUpButton.bHeld)    { y += 1.0f; }
-    if (moveDownButton.bHeld)  { y -= 1.0f; }
-	if (sneakButton.bHeld) { x *= 0.2f; y *= 0.2f; }
+    if (moveLeftButton.bHeld) { x -= 1.0f; }
+    if (moveUpButton.bHeld) { y += 1.0f; }
+    if (moveDownButton.bHeld) { y -= 1.0f; }
+    if (sneakButton.bHeld) { x *= 0.2f; y *= 0.2f; }
     if (_EngineContext->GetMouse(0).bPressed) {
         _Player.SpawnBullet(*_EngineContext);
-    }
-
-    for (auto& spawner : _Spawners)
-    {
-		// Update each spawner only if the spawner is not paused and the game state is playing
-		if (_GameState == EGameState::Playing && !_SpawnersPaused)
-        spawner->Update(*_EngineContext,
-            elapsedTime);
     }
 
     // Normalize diagonal movement
@@ -88,39 +80,113 @@ void GameManager::Update(float elapsedTime)
 
     std::vector<float> direction = { x, y };
 
-#ifdef ACADEMIA_EXAMPLE
-    auto& bullets = _Player.GetBullets();
-    for (auto& bullet : bullets) {
-        bullet.Update(*_EngineContext, elapsedTime);
-        bullet.Draw(*_EngineContext);
+    if (_GameState == EGameState::Playing) {
+        _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
     }
-    // Remove bullets marked for removal immediately so UI button hits register once
-    _Player.UpdateBullets(*_EngineContext);
+
+    //FIRST ENTRY IN GAMEOVER
+    if (_GameState != EGameState::GameOver && _Player.GetHealth() <= 0) {
+        _GameState = EGameState::GameOver;
+        _SpawnersPaused = true;
+
+        if (!_Player.hasExploded) {
+            _Explosions.emplace_back(_Player.GetPosition(), ExplosionType::Player);
+            _Player.hasExploded = true;
+        }
+
+        _GameOverTimer = 0.0f;
+    }
+
+    //ACTUAL GAMEOVER
+    if (_GameState == EGameState::GameOver)
+    {
+        for (auto& e : _Explosions)
+        {
+            e.Update(elapsedTime);
+            e.Draw(_EngineContext);
+        }
+
+        _Explosions.erase(
+            std::remove_if(_Explosions.begin(), _Explosions.end(),
+                [](const Explosion& e) {
+                    return e.finished;
+                }),
+            _Explosions.end());
+
+        EndGameLogic(elapsedTime);
+        return;
+    }
+
+    //PLAYING STATE
+    if (_GameState == EGameState::Playing) {
+        /*1. SPAWNER UPDATE*/
+        for (auto& spawner : _Spawners)
+        {
+            // Update each spawner only if the spawner is not paused and the game state is playing
+            if (!_SpawnersPaused)
+                spawner->Update(*_EngineContext,
+                    elapsedTime);
+        }
+
+        /*2. PLAYER UPDATE*/
+        _Player.Update(*_EngineContext, elapsedTime);
+
+        /*3. ENEMY UPDATE*/
+        for (auto& enemyPtr : _Enemies)
+        {
+            enemyPtr->Update(*_EngineContext, elapsedTime);
+
+            if (enemyPtr->GetHealth() <= 0.0f &&
+                !enemyPtr->hasExploded)
+            {
+                _Explosions.emplace_back(
+                    enemyPtr->GetPosition(),
+                    ExplosionType::Enemy
+                );
+            }
+        }
+
+        /*4. BULLET UPDATE*/
+        for (auto& bullet : _Player.GetBullets()) {
+            bullet.Update(*_EngineContext, elapsedTime);
+        }
+
+        /*5. COLLISIONMANAGER UPDATE*/
+        //_CollisionManager.SetBullets(&_Player.GetBullets());
+        _CollisionManager.Update(elapsedTime);
+
+        /*6. PLAYER UPDATE BULLET*/
+        _Player.UpdateBullets(*_EngineContext);
+
+        /*7. BULLET DRAW*/
+        for (auto& bullet : _Player.GetBullets())
+        {
+            bullet.Draw(*_EngineContext);
+        }
+
+        /*8. ENEMY DRAW*/
+        for (auto& enemyPtr : _Enemies)
+        {
+            enemyPtr->Draw(*_EngineContext);
+        }
+
+        /*9. PLAYER DRAW*/
+        _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
+        _Player.Draw(*_EngineContext);
+    }
+
+#ifdef ACADEMIA_EXAMPLE
 
     // Only run enemy updates, player movement and collision during active gameplay
     // Keep bullets updating/drawing above so player can shoot UI buttons on the start screen
     if (_GameState == EGameState::Playing) {
-        // iterate enemies for each spawner (each spawner protects its own container)
-        for (auto& enemyPtr : _Enemies)
-        {
-            auto& enemy = *enemyPtr;
 
-            enemy.SetGameManager(this);
-            enemy.Update(*_EngineContext, elapsedTime);
-            enemy.Draw(*_EngineContext);
-
-            if (enemy.GetHealth() <= 0.0f && !enemy.hasExploded)
-            {
-                _Explosions.emplace_back(enemy.GetPosition(),
-                    ExplosionType::Enemy);
-            }
-        }
 
         Ennemies::RemoveEnnemie(_Enemies, *_EngineContext);
 
         for (auto& p : _PowerUps)
         {
-            p->SetGameManager(this);
+            //p->SetGameManager(this);
             p->Update(*_EngineContext, elapsedTime);
             p->Draw(*_EngineContext);
         }
@@ -150,35 +216,42 @@ void GameManager::Update(float elapsedTime)
                 }),
             _PowerUpNotifications.end());
 
-        _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
-        _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
-        _Player.Update(*_EngineContext, elapsedTime);
-        _Player.Draw(*_EngineContext);
-
-
-        // Now that bullets and enemies have moved this frame, run collision detection
-        // Rebind bullet collider owners to current addresses in the deque to avoid dangling pointers
-        auto& bulletsRef = _Player.GetBullets();
-        for (auto& b : bulletsRef) {
-            if (b.collider) {
-                b.collider->owner = &b;
-                b.collider->position = b.GetPosition();
-                b.collider->size = b.GetRadius();
-            }
-        }
-        _CollisionManager.SetBullets(&bulletsRef);
-        _CollisionManager.Update(elapsedTime);
-
 		//First boss fight is Chtulhu, so we can check if the score is above 50k to start the fight.
-        if (_Score >= 1000.0f && !inBossFight) {
+        if (_Score >= 10000.0f && !inBossFight) {
 			//Stop the spawners and remove all the ennemies on the screen to start the boss fight.
             StartChtulhuFight();
-			_Cthulhu->SetPlayer(&_Player);
         }
         if (_Cthulhu) {
+			//_Cthulhu->SetGameManager(this);
 			_Cthulhu->Update(*_EngineContext, elapsedTime);
 			_Cthulhu->Draw(*_EngineContext);
-            if (_Cthulhu->IsDialogueActive()) _Cthulhu->DrawDialogue(*_EngineContext);
+
+            if (_Cthulhu->IsDialogueActive())
+            {
+                if (_Cthulhu->GetState() == BossState::Dying)
+                {
+                    _Cthulhu->DrawDialogue(
+                        *_EngineContext,
+                        _Cthulhu->GetDeathDialogue());
+                }
+                else
+                {
+                    _Cthulhu->DrawDialogue(
+                        *_EngineContext,
+                        _Cthulhu->GetIntroDialogue());
+                }
+            }
+
+            if (_Cthulhu->GetState() == BossState::Dead)
+            {
+                _Explosions.emplace_back(
+                    _Cthulhu->GetPosition(),
+                    ExplosionType::Enemy);
+
+                _Cthulhu.reset();
+
+                ResumeGame();
+            }
         }
 
         // collision logic handled here but bullets already cleaned up
@@ -202,18 +275,18 @@ void GameManager::Update(float elapsedTime)
         _Explosions.end());
 
     // UI code
-    // Draw Player health bar
-    olc::vi2d healthBarPos = _EngineContext->ConvertWorldPositionToPixels(_Player.GetPosition()) + olc::vi2d(-20, -30);
-    if (_GameState == EGameState::Playing) _EngineContext->FillRect(healthBarPos, olc::vi2d(40, 5), olc::WHITE);
-    if (_Player.GetHealth() > 0 && _GameState == EGameState::Playing) {
-        int healthWidth = static_cast<int>(40 * (_Player.GetHealth() / 100.0f));
-        _EngineContext->FillRect(healthBarPos, olc::vi2d(healthWidth, 5), olc::GREEN);
-    }
+    DrawPlayerHealthBar(_EngineContext);
+
     DrawUI();
     DrawPowerUpUI();
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
 
-    EndGameLogic(elapsedTime);
+    // Only increase score during active gameplay (not on start screen or when game over)
+    if (_GameState == EGameState::Playing && _Player.GetHealth() > 0) {
+        // Increase score over time
+        float scoreIncrement = elapsedTime * 5.0f; // base increment
+        AddScore(scoreIncrement);
+    }
 #endif
 }
 
@@ -398,27 +471,6 @@ void GameManager::SpawnEnemy(EEnemyType type, const olc::vf2d& position)
 }
 
 void GameManager::EndGameLogic(float elapsedTime) {
-    // Only increase score during active gameplay (not on start screen or when game over)
-    if (_GameState == EGameState::Playing && _Player.GetHealth() > 0) {
-        // Increase score over time
-        float scoreIncrement = elapsedTime * 5.0f; // base increment
-        AddScore(scoreIncrement);
-    }
-
-    // Non-blocking game over handling with fade transition and spawner pause
-    if (_GameState != EGameState::GameOver && _Player.GetHealth() <= 0) {
-        _GameState = EGameState::GameOver;
-        _SpawnersPaused = true;
-
-        if (!_Player.hasExploded) {
-            _Explosions.emplace_back(_Player.GetPosition(), ExplosionType::Player);
-            _Player.hasExploded = true;
-        }
-
-        _GameOverTimer = 0.0f;
-    }
-
-
     if (_GameState == EGameState::GameOver)
     {
         bool explosionStillRunning = false;
@@ -432,11 +484,9 @@ void GameManager::EndGameLogic(float elapsedTime) {
             }
         }
 
-        if (!explosionStillRunning)
+        if (!explosionStillRunning && !_IsFadingIn && _GameOverFade <= 0.0f)
         {
-            _GameState = EGameState::GameOver;
             _IsFadingIn = true;
-            _GameOverFade = 0.0f;
         }
 
         // advance fade in
@@ -451,15 +501,27 @@ void GameManager::EndGameLogic(float elapsedTime) {
         // draw overlay with alpha based on fade
         // olc::Pixel takes RGB only; simulate alpha by interpolating color toward DARK_RED
 		// Taken from Github Copilot suggestion, looks good and is simple enough to understand, nice job Copilot :D
-        auto blend = [&](const olc::Pixel& a, const olc::Pixel& b, float t) {
+        float t = _GameOverFade;
+        float eased = t * t * (3.0f - 2.0f * t); // SmoothStep
+        auto blend = [&](const olc::Pixel& a, const olc::Pixel& b, float eased) {
             uint8_t r = static_cast<uint8_t>(a.r * (1.0f - t) + b.r * t);
             uint8_t g = static_cast<uint8_t>(a.g * (1.0f - t) + b.g * t);
             uint8_t bl = static_cast<uint8_t>(a.b * (1.0f - t) + b.b * t);
             return olc::Pixel(r, g, bl);
         };
 
-        olc::Pixel bg = blend(olc::BLACK, olc::DARK_RED, _GameOverFade);
-        _EngineContext->Clear(bg);
+        olc::Pixel bg =
+            blend(olc::BLACK,
+                olc::DARK_RED,
+                eased);
+
+        _EngineContext->FillRect(
+            0,
+            0,
+            _EngineContext->ScreenWidth(),
+            _EngineContext->ScreenHeight(),
+            bg
+        );
         _EngineContext->DrawString(850, 540, "GAME OVER", alertUIYellow, 3);
         _EngineContext->DrawString(800, 600, "Press R to Restart", alertUIYellow, 2);
 
@@ -476,7 +538,6 @@ void GameManager::EndGameLogic(float elapsedTime) {
                 _GameOverFade = 0.0f;
                 _IsFadingOut = false;
                 InitializeGame(); // clears bullets/enemies and restores player health
-                _SpawnersPaused = true;
 				_EngineContext->SetState(EEngineState::Lobby);
             }
         }
@@ -484,15 +545,22 @@ void GameManager::EndGameLogic(float elapsedTime) {
 }
 
 void GameManager::InitializeGame() {
+    
+    _GameState = EGameState::Playing;
+    _IsFadingIn = false;
+    _IsFadingOut = false;
+    _GameOverFade = 0.0f;
+    _GameOverTimer = 0.0f;
+    _Player.hasExploded = false;
+    inBossFight = false;
+    _Cthulhu.reset();
+
     _SpawnersPaused = false;
     _Spawners.clear();
 
     SetupSpawner();
 
     _EngineContext->Clear(bgColorNavyBlue);
-
-    _Player.hasExploded = false;
-    _GameOverTimer = 0.0f;
 
     // Clear explosions (important)
     _Explosions.clear();
@@ -506,17 +574,187 @@ void GameManager::InitializeGame() {
     auto& bullets = _Player.GetBullets();
     bullets.clear();
 
-    _Enemies.clear();
+	ClearEnnemyPtrs();
+	ClearPowerUpPtrs();
 }
 
-//➥ Start the Chtulhu fight by spawning the Chtulhu enemy and setting up any necessary game state for the fight
-void GameManager::StartChtulhuFight() {
-    inBossFight = true;
-    _SpawnersPaused = true; 
+void GameManager::ClearEnnemyPtrs() {
+    for (auto& enemy : _Enemies)
+    {
+        if (enemy && enemy->collider)
+        {
+            _CollisionManager.UnregisterCollider(enemy->collider.get());
+        }
+    }
     _Enemies.clear();
+}
+void GameManager::ClearPowerUpPtrs() {
+    for (auto& powerUp : _PowerUps)
+    {
+        if (powerUp && powerUp->collider)
+        {
+            _CollisionManager.UnregisterCollider(powerUp->collider.get());
+        }
+    }
     _PowerUps.clear();
+}
 
-	// Spawn Chtulhu enemy outside the top of the screen, centered horizontally and comming to the top of the screen to be visible
-    _Cthulhu = std::make_unique<Cthulhu>(olc::vf2d(_EngineContext->ScreenWidth()/2,
-        _EngineContext->ScreenHeight() + 25));
+//Start the Chtulhu fight by spawning the Chtulhu enemy and setting up any necessary game state for the fight such as :
+//➥ Pausing spawners
+//➥ Clearing existing enemies and power-ups
+//➥ Setting the inBossFight flag to true
+//➥ Positioning Chtulhu outside the top of the screen, centered horizontally, and moving it into view
+//➥ Initializing Chtulhu's collision with the collision manager
+void GameManager::StartChtulhuFight()
+{
+    inBossFight = true;
+    _SpawnersPaused = true;
+
+	ClearEnnemyPtrs();
+	ClearPowerUpPtrs();
+
+    _Cthulhu = std::make_unique<Cthulhu>(
+        olc::vf2d(
+            _EngineContext->ScreenWidth() / 2.0f,
+            _EngineContext->ScreenHeight() + 25.0f
+        )
+    );
+
+    _Cthulhu->SetGameManager(this);
+    _Cthulhu->SetPlayer(&_Player);
+    _Cthulhu->InitializeCollision(&_CollisionManager);
+}
+
+void GameManager::ResumeGame() {
+	_SpawnersPaused = false;
+}
+
+void GameManager::DrawPlayerHealthBar(AcademiaEngine* engineContext)
+{
+    float healthRatio =
+        std::clamp(_Player.GetHealth() / 100.0f, 0.0f, 1.0f);
+
+    const olc::vi2d barPos = { 24, 120 };
+
+    constexpr int barWidth = 28;
+    constexpr int barHeight = 300;
+
+    // Colors
+    olc::Pixel darkPanel = olc::Pixel(12, 4, 24);
+
+    olc::Pixel frameDark = olc::Pixel(45, 10, 80);
+    olc::Pixel frameMid = olc::Pixel(110, 35, 180);
+    olc::Pixel frameLight = olc::Pixel(235, 190, 255);
+
+    olc::Pixel healthColor = olc::Pixel(170, 45, 255);
+    olc::Pixel healthHighlight = olc::Pixel(240, 180, 255);
+
+    // -----------------------------
+    // Shadow
+    // -----------------------------
+    engineContext->FillRect(
+        barPos + olc::vi2d(5, 6),
+        { barWidth, barHeight },
+        olc::Pixel(0, 0, 0)
+    );
+
+    // -----------------------------
+    // Outer glow frame
+    // -----------------------------
+    engineContext->DrawRect(
+        barPos - olc::vi2d(4, 4),
+        { barWidth + 8, barHeight + 8 },
+        frameDark
+    );
+
+    engineContext->DrawRect(
+        barPos - olc::vi2d(2, 2),
+        { barWidth + 4, barHeight + 4 },
+        frameMid
+    );
+
+    engineContext->DrawRect(
+        barPos - olc::vi2d(1, 1),
+        { barWidth + 2, barHeight + 2 },
+        frameLight
+    );
+
+    // -----------------------------
+    // Inner background
+    // -----------------------------
+    engineContext->FillRect(
+        barPos,
+        { barWidth, barHeight },
+        darkPanel
+    );
+
+    // -----------------------------
+    // Health fill
+    // -----------------------------
+    int fillHeight =
+        static_cast<int>(barHeight * healthRatio);
+
+    if (fillHeight > 0)
+    {
+        int fillY =
+            barPos.y + (barHeight - fillHeight);
+
+        engineContext->FillRect(
+            { barPos.x, fillY },
+            { barWidth, fillHeight },
+            healthColor
+        );
+
+        // Bright strip
+        engineContext->FillRect(
+            { barPos.x + 2, fillY },
+            { 4, fillHeight },
+            healthHighlight
+        );
+
+        // Bright top edge
+        engineContext->DrawLine(
+            { barPos.x + 1, fillY },
+            { barPos.x + barWidth - 2, fillY },
+            olc::WHITE
+        );
+    }
+
+    // -----------------------------
+    // Segments
+    // -----------------------------
+    constexpr int segmentCount = 10;
+
+    for (int i = 1; i < segmentCount; i++)
+    {
+        int y =
+            barPos.y +
+            (barHeight / segmentCount) * i;
+
+        engineContext->DrawLine(
+            { barPos.x + 2, y },
+            { barPos.x + barWidth - 3, y },
+            olc::Pixel(55, 20, 95)
+        );
+    }
+
+    // -----------------------------
+    // Inner border
+    // -----------------------------
+    engineContext->DrawRect(
+        barPos,
+        { barWidth, barHeight },
+        frameLight
+    );
+
+    // -----------------------------
+    // HP text
+    // -----------------------------
+    engineContext->DrawString(
+        barPos.x - 4,
+        barPos.y + barHeight + 16,
+        std::to_string((int)_Player.GetHealth()),
+        olc::WHITE,
+        2
+    );
 }
