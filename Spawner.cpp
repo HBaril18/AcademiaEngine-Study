@@ -4,6 +4,7 @@
 #include <memory>
 #include <iostream>
 #include <mutex>
+#include <random>
 // ensure <memory> is available for std::unique_ptr usage
 
 /*----------------------------------*/
@@ -11,8 +12,6 @@
 // MADE BY HENRICK BARIL 2026-04-09 //
 //                                  //
 /*----------------------------------*/
-
-#include <random>
 
 Spawner::Spawner()
 {

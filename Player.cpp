@@ -132,12 +132,6 @@ void Player::SpawnBullet(AcademiaEngine& engine) {
     else
         direction = { 1.0f, 0.0f }; // default direction
     bullet.SetDirection(direction);
-    std::cout
-        << "Spawn bullet "
-        << &bullets.back()
-        << " total="
-        << bullets.size()
-        << std::endl;
 }
 
 olc::vf2d Player::GetPlayerDirection(AcademiaEngine& engine) const {
@@ -203,11 +197,6 @@ void Player::UpdateBullets(AcademiaEngine& engineContext)
             {
                 bullet.ShutdownCollision(collisionManager);
             }
-
-            std::cout
-                << "Deleting bullet "
-                << &bullet
-                << std::endl;
 
             it = bullets.erase(it);
         }

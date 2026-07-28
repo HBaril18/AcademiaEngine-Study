@@ -131,7 +131,7 @@ void GameManager::Update(float elapsedTime)
         /*2. PLAYER UPDATE*/
         _Player.Update(*_EngineContext, elapsedTime);
 
-        /*3. ENEMY UPDATE*/
+        // 3. ENEMY UPDATE
         for (auto& enemyPtr : _Enemies)
         {
             enemyPtr->Update(*_EngineContext, elapsedTime);
@@ -143,34 +143,64 @@ void GameManager::Update(float elapsedTime)
                     enemyPtr->GetPosition(),
                     ExplosionType::Enemy
                 );
+
+                enemyPtr->hasExploded = true;
             }
         }
 
-        /*4. BULLET UPDATE*/
-        for (auto& bullet : _Player.GetBullets()) {
+        // 3.5 BOSS UPDATE
+        if (_Cthulhu)
+        {
+            _Cthulhu->Update(*_EngineContext, elapsedTime);
+        }
+
+        // 4. BULLET UPDATE
+        for (auto& bullet : _Player.GetBullets())
+        {
             bullet.Update(*_EngineContext, elapsedTime);
         }
 
-        /*5. COLLISIONMANAGER UPDATE*/
-        //_CollisionManager.SetBullets(&_Player.GetBullets());
+        // 5. COLLISION UPDATE
         _CollisionManager.Update(elapsedTime);
 
-        /*6. PLAYER UPDATE BULLET*/
+        // 6. CLEAN BULLETS
         _Player.UpdateBullets(*_EngineContext);
 
-        /*7. BULLET DRAW*/
+        // BULLET DRAW
         for (auto& bullet : _Player.GetBullets())
         {
             bullet.Draw(*_EngineContext);
         }
 
-        /*8. ENEMY DRAW*/
+        // ENEMY DRAW
         for (auto& enemyPtr : _Enemies)
         {
             enemyPtr->Draw(*_EngineContext);
         }
 
-        /*9. PLAYER DRAW*/
+        // BOSS DRAW
+        if (_Cthulhu)
+        {
+            _Cthulhu->Draw(*_EngineContext);
+
+            if (_Cthulhu->IsDialogueActive())
+            {
+                if (_Cthulhu->GetState() == BossState::Dying)
+                {
+                    _Cthulhu->DrawDialogue(
+                        *_EngineContext,
+                        _Cthulhu->GetDeathDialogue());
+                }
+                else
+                {
+                    _Cthulhu->DrawDialogue(
+                        *_EngineContext,
+                        _Cthulhu->GetIntroDialogue());
+                }
+            }
+        }
+
+        // PLAYER DRAW
         _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
         _Player.Draw(*_EngineContext);
     }
@@ -217,31 +247,11 @@ void GameManager::Update(float elapsedTime)
             _PowerUpNotifications.end());
 
 		//First boss fight is Chtulhu, so we can check if the score is above 50k to start the fight.
-        if (_Score >= 10000.0f && !inBossFight) {
+        if (_Score >= 10.0f && !inBossFight) {
 			//Stop the spawners and remove all the ennemies on the screen to start the boss fight.
             StartChtulhuFight();
         }
         if (_Cthulhu) {
-			//_Cthulhu->SetGameManager(this);
-			_Cthulhu->Update(*_EngineContext, elapsedTime);
-			_Cthulhu->Draw(*_EngineContext);
-
-            if (_Cthulhu->IsDialogueActive())
-            {
-                if (_Cthulhu->GetState() == BossState::Dying)
-                {
-                    _Cthulhu->DrawDialogue(
-                        *_EngineContext,
-                        _Cthulhu->GetDeathDialogue());
-                }
-                else
-                {
-                    _Cthulhu->DrawDialogue(
-                        *_EngineContext,
-                        _Cthulhu->GetIntroDialogue());
-                }
-            }
-
             if (_Cthulhu->GetState() == BossState::Dead)
             {
                 _Explosions.emplace_back(
@@ -619,7 +629,7 @@ void GameManager::StartChtulhuFight()
             _EngineContext->ScreenHeight() + 25.0f
         )
     );
-
+    _Cthulhu->collider->layer = 2;
     _Cthulhu->SetGameManager(this);
     _Cthulhu->SetPlayer(&_Player);
     _Cthulhu->InitializeCollision(&_CollisionManager);

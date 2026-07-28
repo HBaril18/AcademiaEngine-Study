@@ -26,6 +26,7 @@ public:
     void SetGameManager(GameManager* gm) { gameManager = gm; }
 
     virtual void InitializeCollision(CollisionManager* collisionManager) override;
+    virtual void ShutdownCollision(CollisionManager* collisionManager) override;
     virtual void Update(AcademiaEngine& engine, float elapsedTime) override;
     virtual void Draw(AcademiaEngine& engine) override;
 	virtual void TakeDamage(float damage, float elapsedTime) override;
@@ -114,6 +115,5 @@ private:
     bool _CanTakeDamage = false;
 
     // Collision
-    Collider* collider = nullptr;
     CollisionManager* collisionManager = nullptr;
 };

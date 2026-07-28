@@ -6,7 +6,7 @@ Cthulhu::Cthulhu(olc::vf2d pos)
     _MovementState = CthulhuMovementState::Intro;
 
     Scale = 4;
-    MaxHealth = 10.0f;
+    MaxHealth = 1000.0f;
     Health = MaxHealth;
     _MovementStateTimer = 0.0f;
     _DialogueIndex = 0;
@@ -15,13 +15,6 @@ Cthulhu::Cthulhu(olc::vf2d pos)
 
 Cthulhu::~Cthulhu()
 {
-    if (collisionManager && collider)
-    {
-        collisionManager->UnregisterCollider(collider);
-    }
-
-    delete collider;
-    collider = nullptr;
 }
 
 void Cthulhu::InitializeCollision(CollisionManager* collisionManager)
@@ -32,7 +25,12 @@ void Cthulhu::InitializeCollision(CollisionManager* collisionManager)
     {
         collider->enabled = false;
     }
+
     _CanTakeDamage = false;
+}
+
+void Cthulhu::ShutdownCollision(CollisionManager* collisionManager) {
+    Ennemies::ShutdownCollision(collisionManager);
 }
 
 void Cthulhu::Draw(AcademiaEngine& engine)
@@ -91,9 +89,6 @@ void Cthulhu::TakeDamage(float damage, float elapsedTime)
         Health = 0.0f;
         Player* p = GetPlayer();
         p->AddScore(1500.0f);
-
-        // disable collider immediately to avoid further collision processing
-        if (collider) collider->enabled = false;
     }
 }
 
@@ -295,7 +290,7 @@ void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
     if (Health <= 0 && State == BossState::Alive)
     {
         State = BossState::Dying;
-        _DeathTimer = 17.0f; // seconds
+        _DeathTimer = 18.0f; // seconds
         _DialogueIndex = 0;
         _VisibleCharacters = 0;
         _ShowDialogue = true;
@@ -345,30 +340,35 @@ void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
     switch (_MovementState)
     {
     case CthulhuMovementState::Intro:
+        if (collider) collider->enabled = false;
         _CanTakeDamage = false;
         SetColliderEnabled(false);
         UpdateIntro(elapsedTime, engine);
         break;
 
     case CthulhuMovementState::Orbit:
+        if (collider) collider->enabled = true;
         _CanTakeDamage = true;
         SetColliderEnabled(true);
         UpdateOrbit(elapsedTime);
         break;
 
     case CthulhuMovementState::Sweep:
+        if (collider) collider->enabled = true;
         _CanTakeDamage = true;
         SetColliderEnabled(true);
         UpdateSweep(elapsedTime, engine);
         break;
 
     case CthulhuMovementState::Teleport:
+        if (collider) collider->enabled = true;
         _CanTakeDamage = true;
         SetColliderEnabled(true);
         UpdateTeleport(elapsedTime);
         break;
 
     case CthulhuMovementState::Summon:
+        if (collider) collider->enabled = false;
         _CanTakeDamage = false;
         SetColliderEnabled(false);
         UpdateSummons(elapsedTime, engine);
@@ -404,8 +404,6 @@ void Cthulhu::Update(AcademiaEngine& engine, float elapsedTime)
 
     if (collider)
         collider->position = Position;
-
-
 }
 
 void Cthulhu::UpdateIntro(float elapsedTime, AcademiaEngine & engine)

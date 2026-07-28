@@ -44,6 +44,7 @@ public:
     virtual bool IsDialogueActive() const { return false; }
     virtual void DrawDialogue(AcademiaEngine& engine, std::vector<std::string> dialogue){}
     virtual void InitializeCollision(class CollisionManager* collisionManager);
+    virtual void ShutdownCollision(class CollisionManager* collisionManager);
 
     // --- Stats virtuelles ---
     virtual float GetSpeed() const { return 60.0f; }
@@ -51,7 +52,7 @@ public:
     virtual float GetMass()   const { return 1.0f; }
 
     void SetGameManager(GameManager* gm) { gameManager = gm; }
-    void ShutdownCollision(class CollisionManager* collisionManager);
+
 
     BossState GetState() const { return State; }
     BossState SetState(BossState state) { State = state; }

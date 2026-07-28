@@ -8,7 +8,6 @@
 #include "PowerUp.h"
 #include <memory>
 
-/*=================NEW=====================*/
 CellKey CollisionManager::GetCell(
 	const olc::vf2d& pos)
 {
@@ -66,41 +65,6 @@ void CollisionManager::BuildGrid()
 	}
 }
 
-/*std::vector<Collider*>
-CollisionManager::GetNearbyColliders(
-	const olc::vf2d& position)
-{
-	std::vector<Collider*> result;
-
-	CellKey center =
-		GetCell(position);
-
-	for (int y = -1; y <= 1; y++)
-	{
-		for (int x = -1; x <= 1; x++)
-		{
-			CellKey key =
-			{
-				center.x + x,
-				center.y + y
-			};
-
-			auto it =
-				grid.find(key);
-
-			if (it == grid.end())
-				continue;
-
-			result.insert(
-				result.end(),
-				it->second.begin(),
-				it->second.end()
-			);
-		}
-	}
-
-	return result;
-}*/
 std::vector<Collider*> CollisionManager::GetNearbyColliders(
 	const olc::vf2d& position)
 {
@@ -136,24 +100,14 @@ std::vector<Collider*> CollisionManager::GetNearbyColliders(
 
 	return result;
 }
-/*=========================================*/
 
 void CollisionManager::RegisterCollider(Collider* collider)
 {
-	std::cout
-		<< "REGISTER "
-		<< collider
-		<< std::endl;
-
 	colliders.push_back(collider);
 }
 
 void CollisionManager::RemoveBullet(Bullet* b)
 {
-	std::cout
-		<< "RemoveBullet bullet=" << b
-		<< std::endl;
-
 	if (!b)
 		return;
 
@@ -251,10 +205,6 @@ std::vector<PowerUp*> CollisionManager::GetPowerUp()
 
 void CollisionManager::UnregisterCollider(Collider* collider)
 {
-	std::cout
-		<< "UNREGISTER "
-		<< collider
-		<< std::endl;
 	// Implementation for unregistering a collider
 	if (!collider) {
 		return; // Handle null pointer case
@@ -433,10 +383,6 @@ void CollisionManager::Update(float elapsedTime)
 							continue;
 						}
 
-						std::cout
-							<< "Damage bullet=" << bullet
-							<< std::endl;
-
 						enemy->TakeDamage(
 							10.0f * player->GetDamageMultiplier(),
 							elapsedTime
@@ -462,7 +408,6 @@ void CollisionManager::Update(float elapsedTime)
 							powerUp->collected = true;
 							powerUp->markedForRemoval = true;
 							RemoveColliderPowerUp(powerUp);
-							//powerUp->ShutdownCollision(this);
 						}
 					}
 				}
