@@ -10,6 +10,7 @@ class Player;
 class Ennemies;
 class Bullet;
 class PowerUp;
+class EnemyBullet;
 
 /*======================NEW=============================*/
 struct GridCell
@@ -51,12 +52,13 @@ class CollisionManager
 {
 public:
 
-	const bool collisionMatrix[4][4] = {
-		//0     1      2      3
-		{false, true, false, false}, // 0 PowerUp
-		{true, false, true,  false}, // 1 Player
-		{false, true,  false, true }, // 2 Enemy
-		{false, false, true,  false}  // 3 Bullet
+	const bool collisionMatrix[5][5] = {
+		// 0     1      2      3      4
+		{false, true, false, false, false }, // 0 PowerUp
+		{true, false, true,  false, true  }, // 1 Player
+		{false, true,  false, true, false }, // 2 Enemy
+		{false, false, true,  false, false}, // 3 Bullet
+		{false, true, false, false, false }  // 4 Enemy bullet
 	};
 	/*=====================NEW=======================*/
 	static constexpr float CELL_SIZE = 128.0f;

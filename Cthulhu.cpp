@@ -256,6 +256,39 @@ void Cthulhu::DrawBossHealthBar(AcademiaEngine& engine, float health, float maxH
     );
 
     // -------------------------------------------------
+    // Health text
+    // -------------------------------------------------
+    std::string hpText =
+        std::to_string(static_cast<int>(health)) +
+        " / " +
+        std::to_string(static_cast<int>(maxHealth));
+
+    olc::vi2d hpTextSize = engine.GetTextSize(hpText);
+
+    // Center text inside the health bar
+    olc::vi2d hpTextPos =
+    {
+        barPos.x + (barSize.x - hpTextSize.x * 2) / 2, // scale = 2
+        barPos.y + (barSize.y - hpTextSize.y * 2) / 2
+    };
+
+    // Shadow
+    engine.DrawString(
+        hpTextPos + olc::vi2d(2, 2),
+        hpText,
+        olc::BLACK,
+        2
+    );
+
+    // Main text
+    engine.DrawString(
+        hpTextPos,
+        hpText,
+        olc::WHITE,
+        2
+    );
+
+    // -------------------------------------------------
     // Boss name
     // -------------------------------------------------
     std::string bossName = "Cthulhu Eye";
@@ -581,6 +614,8 @@ void Cthulhu::UpdateOrbit(float elapsedTime)
     olc::vf2d dir = orbitTarget - Position;
 
     Position += dir * 2.0f * elapsedTime;
+
+    Shoot(elapsedTime, gameManager);
 }
 
 void Cthulhu::UpdateSweep(float elapsedTime, AcademiaEngine& engine)
@@ -613,6 +648,7 @@ void Cthulhu::UpdateSweep(float elapsedTime, AcademiaEngine& engine)
         Position.x = RightLimit;
         _SweepDirection = -1.0f;
     }
+    Shoot(elapsedTime, gameManager);
 }
 
 void Cthulhu::UpdateFigure8(float elapsedTime)
@@ -670,6 +706,7 @@ void Cthulhu::UpdateTeleport(float elapsedTime)
             sinf(angle) * 350.0f
         };
     }
+    Shoot(elapsedTime, gameManager);
 }
 
 void Cthulhu::UpdateSummons(float elapsedTime, AcademiaEngine& engine)
@@ -845,4 +882,21 @@ bool Cthulhu::TryGetRandomSpawnPositionAround(
     }
 
     return false;
+}
+
+void Cthulhu::Shoot(float elapsedTime, GameManager* gm) {
+    if (GetPlayer() && gm)
+    {
+        _ShootTimer += elapsedTime;
+
+        if (_ShootTimer >= _ShootDelay)
+        {
+            _ShootTimer = 0.0f;
+
+            gm->SpawnEnemyBullet(
+                Position,
+                GetPlayer()->GetPosition()
+            );
+        }
+    }
 }

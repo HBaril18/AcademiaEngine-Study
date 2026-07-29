@@ -82,6 +82,7 @@ public:
     olc::Sprite SplashFlames;
 	olc::Sprite LobbyBG;
 	olc::Sprite OptionsBG;
+    olc::Sprite EnemyBullet;
 
     olc::Decal* EyeCthulhuDecal = nullptr;
     olc::Decal* SplashBGDecal = nullptr;
@@ -89,6 +90,7 @@ public:
     olc::Decal* SplashFlamesDecal = nullptr;
 	olc::Decal* LobbyBGDecal = nullptr;
 	olc::Decal* OptionsBGDecal = nullptr;
+    olc::Decal* EnemyBulletDecal = nullptr;
 
 private:
 

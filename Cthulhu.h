@@ -53,6 +53,8 @@ public:
     olc::vf2d GetRandomPointAround(float minDistance, float maxDistance);
     bool IsSpawnPositionValid(AcademiaEngine& engine, const olc::vf2d& spawnPos, float spawnRadius, const std::vector<olc::vf2d>& plannedPositions);
 
+    void Shoot(float elapsedTime, GameManager* gm);
+
     bool IsDialogueActive() const override;
 	void DrawDialogue(AcademiaEngine& engine, std::vector<std::string> dialogue) override;
     void UpdateDialogue(float elapsedTime, std::vector<std::string> dialogue);
@@ -81,6 +83,12 @@ public:
     olc::Sprite* GetSprite(AcademiaEngine& engine)
     {
         return &engine.EyeChtulhuSheet;
+    }
+
+    //Set the shooting rate of the boss
+    //➥ rate is in seconds (add a delay)
+    void SetShootingRate(float sr) {
+        _ShootDelay = sr;
     }
 
     float DialogueTimer = 0.0f;
@@ -113,6 +121,9 @@ private:
     float _AnimationSpeed = 0.1f;
 
     bool _CanTakeDamage = false;
+
+    float _ShootTimer = 0.0f;
+    float _ShootDelay = 1.25f;
 
     // Collision
     CollisionManager* collisionManager = nullptr;

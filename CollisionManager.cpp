@@ -267,7 +267,7 @@ void CollisionManager::Update(float elapsedTime)
 			if (!colliderA->enabled || !colliderB->enabled) continue;
 			if (colliderA->owner == nullptr || colliderB->owner == nullptr) continue;
 			if (!player) continue;
-			if (colliderA->layer < 0 || colliderA->layer >= 4 || colliderB->layer < 0 || colliderB->layer >= 4) continue;
+			if (colliderA->layer < 0 || colliderA->layer >= 5 || colliderB->layer < 0 || colliderB->layer >= 5){ continue; }
 
 			int a = colliderA->layer;
 			int b = colliderB->layer;
@@ -390,6 +390,51 @@ void CollisionManager::Update(float elapsedTime)
 
 						RemoveBullet(bullet);
 						break;
+					}
+					// EnemyBullet_Player
+					else if ((a == 4 && b == 1) || (a == 1 && b == 4))
+					{
+						EnemyBullet* enemyBullet = nullptr;
+						Player* player = nullptr;
+
+						if (a == 4)
+						{
+							enemyBullet = static_cast<EnemyBullet*>(colliderA->owner);
+							player = static_cast<Player*>(colliderB->owner);
+						}
+						else
+						{
+							enemyBullet = static_cast<EnemyBullet*>(colliderB->owner);
+							player = static_cast<Player*>(colliderA->owner);
+						}
+
+						if (!enemyBullet || !player)
+							continue;
+
+						if (enemyBullet->markedForRemoval ||
+							!enemyBullet->collider ||
+							!enemyBullet->collider->enabled)
+						{
+							continue;
+						}
+						if (player->damageCooldown <= 0.0f)
+						{
+								if (player->GetShield() > 0)
+								{
+									player->RemoveShield();
+								}
+								else
+								{
+									player->TakeDamage(enemyBullet->damage);
+								}
+
+								player->damageCooldown = player->damageDelay;
+						}
+
+						enemyBullet->markedForRemoval = true;
+
+							if (enemyBullet->collider)
+								enemyBullet->collider->enabled = false;
 					}
 					// Player-PowerUp
 					else if ((a == 1 && b == 0) || (a == 0 && b == 1)) {

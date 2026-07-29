@@ -161,6 +161,7 @@
     <ClCompile Include="CollisionManager.cpp" />
     <ClCompile Include="Cthulhu.cpp" />
     <ClCompile Include="Cthulhu.h" />
+    <ClCompile Include="EnemyBullet.cpp" />
     <ClCompile Include="Ennemies.cpp" />
     <ClCompile Include="Explosion.cpp" />
     <ClCompile Include="LightEnemy.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="Character.h" />
     <ClInclude Include="Collider.h" />
     <ClInclude Include="CollisionManager.h" />
+    <ClInclude Include="EnemyBullet.h" />
     <ClInclude Include="EngineState.h" />
     <ClInclude Include="Explosion.h" />
     <ClInclude Include="LightEnemy.h" />

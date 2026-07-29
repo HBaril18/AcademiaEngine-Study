@@ -22,6 +22,7 @@ bool AcademiaEngine::OnUserCreate(){
     SplashFlames.SetSampleMode(olc::Sprite::Mode::NORMAL);
 	LobbyBG.SetSampleMode(olc::Sprite::Mode::NORMAL);
 	OptionsBG.SetSampleMode(olc::Sprite::Mode::NORMAL);
+    EnemyBullet.SetSampleMode(olc::Sprite::Mode::NORMAL);
     RedSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/RedSlimeNoBG.png");
     YellowSlimeSheet.LoadFromFile("assets/Sprite/Enemy/SlimePack/YellowSlime.png");
     BulletSheet.LoadFromFile("assets/Sprite/SpaceShooterShipConstructor/PNG/Bullets/02.png");
@@ -33,6 +34,7 @@ bool AcademiaEngine::OnUserCreate(){
 	SplashFlames.LoadFromFile("assets/Sprite/Canva/Flames.png");
 	LobbyBG.LoadFromFile("assets/Sprite/BackGround/LobbyBG.png");
 	OptionsBG.LoadFromFile("assets/Sprite/BackGround/OptionsBG.png");
+    EnemyBullet.LoadFromFile("assets/Sprite/Enemy/Boss/EyeCthulhu/Projectiles/FinalProjectil.png");
 
     EyeCthulhuDecal =
         new olc::Decal(&EyeChtulhuSheet);
@@ -46,6 +48,8 @@ bool AcademiaEngine::OnUserCreate(){
 		new olc::Decal(&LobbyBG);
 	OptionsBGDecal =
 		new olc::Decal(&OptionsBG);
+    EnemyBulletDecal =
+        new olc::Decal(&EnemyBullet);
 
     _GameManager = std::make_shared<GameManager>(this);
     _GameManager->Initialize(this);

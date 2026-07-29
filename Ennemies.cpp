@@ -44,6 +44,7 @@ void Ennemies::SetPlayer(Player* p)
 
 void Ennemies::SetMaxHealth(float h) {
     MaxHealth = h;
+    Health = MaxHealth;
 }
 
 void Ennemies::InitializeCollision(CollisionManager* collisionManager)

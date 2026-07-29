@@ -2,9 +2,8 @@
 #include <Utils.h>
 #include <memory>
 #include <atomic>
-#include "../../PeriodicTimer.h"
 #include <vector>
-#include "Explosion.h"
+#include <list>
 
 #define ACADEMIA_EXAMPLE
 
@@ -15,9 +14,12 @@
 #include "Ennemies.h"
 #include "Spawner.h"
 #include "../../CollisionManager.h"
-#endif
+#include "../../PeriodicTimer.h"
 #include "external/olc/olcPixelGameEngine.h"
 #include "../../EngineState.h"
+#include "Explosion.h"
+#include "EnemyBullet.h"
+#endif
 
 class AcademiaEngine;
 class Spawner;
@@ -64,6 +66,7 @@ class GameManager
 
 public:
     GameManager(AcademiaEngine* engine);
+    ~GameManager();
     bool Initialize(AcademiaEngine* engineContext);
     void SetUpControl(AcademiaEngine* engineContext);
     void Update(float elapsedTime);
@@ -72,6 +75,7 @@ public:
     void EndGameLogic(float elapsedTime);
     void InitializeGame();
 	void SetDifficultyLevel(EDifficultyLevel level) { _DifficultyLevel = level; }
+    EDifficultyLevel GetDifficulty() { return _DifficultyLevel; }
 	std::string GetDifficultyLevelString() const
 	{
 		switch (_DifficultyLevel)
@@ -95,11 +99,9 @@ public:
     std::vector<std::unique_ptr<PowerUp>>& GetPowerUpList() { return _PowerUps; }
     void AddPowerUpNotification(const std::string& text);
     void StartExitAnimation();
-    ~GameManager();
-    void SpawnEnemy(
-        EEnemyType type,
-        const olc::vf2d& position);
+    void SpawnEnemy(EEnemyType type, const olc::vf2d& position);
     void SpawnRandomEnemy();
+    void SpawnEnemyBullet(const olc::vf2d& position, const olc::vf2d& target);
     void StartChtulhuFight();
     void DrawPowerUpUI();
     void ResumeGame();
@@ -177,12 +179,12 @@ private:
     Player _Player;
     CollisionManager _CollisionManager;
 
-    // Support multiple spawners
     std::vector<std::unique_ptr<Spawner>> _Spawners;
     std::vector<std::unique_ptr<std::atomic<bool>>> _SpawnRequested;
     std::vector<std::unique_ptr<PowerUp>> _PowerUps;
     std::deque<std::unique_ptr<Ennemies>> _Enemies;
     std::unique_ptr<Ennemies> _Cthulhu;
+    std::list<EnemyBullet> _EnemyBullets;
 #endif
 
 };

@@ -148,10 +148,16 @@ void GameManager::Update(float elapsedTime)
             }
         }
 
-        // 3.5 BOSS UPDATE
+        // 3.1 BOSS UPDATE
         if (_Cthulhu)
         {
             _Cthulhu->Update(*_EngineContext, elapsedTime);
+        }
+
+        // 3.2 BOSS BULLET UPDATE
+        for (auto& eBullet : _EnemyBullets)
+        {
+            eBullet.Update(*_EngineContext, elapsedTime);
         }
 
         // 4. BULLET UPDATE
@@ -165,6 +171,40 @@ void GameManager::Update(float elapsedTime)
 
         // 6. CLEAN BULLETS
         _Player.UpdateBullets(*_EngineContext);
+
+        // 7. ENEMY BULLET REMOVAL
+        for (auto it = _EnemyBullets.begin(); it != _EnemyBullets.end(); )
+        {
+            EnemyBullet& bullet = *it;
+
+            bool remove = bullet.markedForRemoval;
+
+            olc::vi2d pixel =
+                _EngineContext->ConvertWorldPositionToPixels(
+                    bullet.GetPosition());
+
+            bool out =
+                pixel.x < 0 ||
+                pixel.x > _EngineContext->ScreenWidth() ||
+                pixel.y < 0 ||
+                pixel.y > _EngineContext->ScreenHeight();
+
+            if (remove || out)
+            {
+                bullet.ShutdownCollision(&_CollisionManager);
+                it = _EnemyBullets.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+        //ENEMY BULLET DRAW
+        for (auto& bullet : _EnemyBullets)
+        {
+            bullet.Draw(*_EngineContext);
+        }
 
         // BULLET DRAW
         for (auto& bullet : _Player.GetBullets())
@@ -206,12 +246,7 @@ void GameManager::Update(float elapsedTime)
     }
 
 #ifdef ACADEMIA_EXAMPLE
-
-    // Only run enemy updates, player movement and collision during active gameplay
-    // Keep bullets updating/drawing above so player can shoot UI buttons on the start screen
     if (_GameState == EGameState::Playing) {
-
-
         Ennemies::RemoveEnnemie(_Enemies, *_EngineContext);
 
         for (auto& p : _PowerUps)
@@ -263,9 +298,8 @@ void GameManager::Update(float elapsedTime)
                 ResumeGame();
             }
         }
-
-        // collision logic handled here but bullets already cleaned up
-    } else {
+    } 
+    else {
         // On start screen, still draw cursor so player can aim and shoot buttons
         _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
     }
@@ -298,6 +332,32 @@ void GameManager::Update(float elapsedTime)
         AddScore(scoreIncrement);
     }
 #endif
+}
+
+void GameManager::SpawnEnemyBullet(const olc::vf2d& position, const olc::vf2d& target)
+{
+    _EnemyBullets.emplace_back();
+
+    EnemyBullet& eBullet = _EnemyBullets.back();
+
+    eBullet.SetPosition(position);
+    eBullet.SetSprite(&_EngineContext->EnemyBullet);
+    if (_DifficultyLevel == EDifficultyLevel::Easy) { eBullet.SetSpeed(700.0f); }
+    if (_DifficultyLevel == EDifficultyLevel::Medium) { eBullet.SetSpeed(800.0f); }
+    if (_DifficultyLevel == EDifficultyLevel::Hard) { eBullet.SetSpeed(1000.0f); }
+    std::cout << "EBullet speed : " << eBullet.speed;
+    eBullet.sprite = &_EngineContext->EnemyBullet;
+    eBullet.decal = new olc::Decal(eBullet.sprite);
+
+    olc::vf2d dir = target - position;
+
+    if (dir.mag2() > 0.001f)
+        dir = dir.norm();
+    else
+        dir = { 1.0f, 0.0f };
+
+    eBullet.SetDirection(dir);
+    eBullet.InitializeCollision(&_CollisionManager);
 }
 
 void GameManager::StartExitAnimation()
@@ -586,6 +646,13 @@ void GameManager::InitializeGame() {
 
 	ClearEnnemyPtrs();
 	ClearPowerUpPtrs();
+
+    for (auto& bullet : _EnemyBullets)
+    {
+        bullet.ShutdownCollision(&_CollisionManager);
+    }
+
+    _EnemyBullets.clear();
 }
 
 void GameManager::ClearEnnemyPtrs() {
@@ -633,6 +700,9 @@ void GameManager::StartChtulhuFight()
     _Cthulhu->SetGameManager(this);
     _Cthulhu->SetPlayer(&_Player);
     _Cthulhu->InitializeCollision(&_CollisionManager);
+    if (_DifficultyLevel == EDifficultyLevel::Easy) { _Cthulhu->SetMaxHealth(1000.0f); }
+    if (_DifficultyLevel == EDifficultyLevel::Medium) { _Cthulhu->SetMaxHealth(1200.0f); }
+    if (_DifficultyLevel == EDifficultyLevel::Hard) { _Cthulhu->SetMaxHealth(1500.f); }
 }
 
 void GameManager::ResumeGame() {
