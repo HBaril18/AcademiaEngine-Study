@@ -91,7 +91,7 @@ public:
         _ShootDelay = sr;
     }
 
-    float DialogueTimer = 0.0f;
+
 
     olc::vf2d topCenterWorld;
 
@@ -104,6 +104,7 @@ private:
     bool _ShowDialogue;
     float _CharacterTimer = 0.0f;
     int _VisibleCharacters = 0;
+    float DialogueTimer = 0.0f;
 
     float _MovementStateTimer = 0.0f;
     float _OrbitAngle = 0.0f;

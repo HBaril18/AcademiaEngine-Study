@@ -91,6 +91,15 @@ public:
 	// return list of PowerUp managed or inferred from colliders (layer == 0)
 	std::vector<PowerUp*> GetPowerUp();
 
+	void CheckCollision(
+		Collider* colliderA,
+		Collider* colliderB,
+		float elapsedTime);
+	void CheckCellAgainstCell(
+		const std::vector<Collider*>& a,
+		const std::vector<Collider*>& b,
+		float elapsedTime);
+
 	// schedule a bullet to be removed (safe during update)
 	void RemoveBullet(Bullet* b);
 

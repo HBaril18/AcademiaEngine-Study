@@ -59,7 +59,7 @@ struct FallingPixel
     float velocity;
 };
 
-enum class EGameState { Playing, GameOver };
+enum class EGameState { Intro, Playing, GameOver };
 
 class GameManager
 {
@@ -123,6 +123,9 @@ public:
 
         return static_cast<EDifficultyLevel>(next);
     }
+
+    void UpdateTutorial(float elapsedTime);
+    bool isDrawn = false;
 
     //Color used for UI
     const olc::Pixel bgColorNavyBlue = olc::Pixel(18, 52, 74);

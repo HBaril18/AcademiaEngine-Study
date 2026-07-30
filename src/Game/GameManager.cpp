@@ -30,6 +30,7 @@ bool GameManager::Initialize(AcademiaEngine* engineContext)
         // Initialize player collider via Player API
         _Player.InitializeCollision(&_CollisionManager);
         InitializeGame();
+        _GameState = EGameState::Intro;
     }
     catch (...) { _Success = false; }
     return _Success;
@@ -58,7 +59,9 @@ void GameManager::Update(float elapsedTime)
     const olc::HWButton sneakButton = _EngineContext->GetKey(shiftKey);
     const olc::HWButton escapeButton = _EngineContext->GetKey(escapeKey);
 
-    /*CONTROLS*/
+    /*================*/
+    /*    CONTROLS    */
+    /*================*/
     if (escapeButton.bPressed) {
         StartExitAnimation();
 
@@ -79,12 +82,68 @@ void GameManager::Update(float elapsedTime)
     }
 
     std::vector<float> direction = { x, y };
+    _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
 
-    if (_GameState == EGameState::Playing) {
-        _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
+    /*========================================*/
+    //INTRO TO INTRODUCE MECHANICS TO THE PLAYER
+    /*========================================*/
+    if (_GameState == EGameState::Intro) {
+        UpdateTutorial(elapsedTime);
+        //UPDATE PLAYER
+        _Player.Update(*_EngineContext, elapsedTime);
+        //UPDATE ENEMY
+        for (auto& enemyPtr : _Enemies)
+        {
+            enemyPtr->Update(*_EngineContext, elapsedTime);
+
+            if (enemyPtr->GetHealth() <= 0.0f &&
+                !enemyPtr->hasExploded)
+            {
+                _Explosions.emplace_back(
+                    enemyPtr->GetPosition(),
+                    ExplosionType::Enemy
+                );
+
+                enemyPtr->hasExploded = true;
+            }
+        }
+        //UPDATE BULLET
+        for (auto& bullet : _Player.GetBullets())
+        {
+            bullet.Update(*_EngineContext, elapsedTime);
+        }
+        //UPDATE COLLISION
+        _CollisionManager.Update(elapsedTime);
+        //CLEAN BULLET
+        _Player.UpdateBullets(*_EngineContext);
+        //DRAW BULLET
+        for (auto& bullet : _Player.GetBullets())
+        {
+            bullet.Draw(*_EngineContext);
+        }
+        //DRAW ENEMY
+        for (auto& enemyPtr : _Enemies)
+        {
+            enemyPtr->Draw(*_EngineContext);
+        }
+        //DRAW PLAYER
+        _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
+        _Player.Draw(*_EngineContext);
+        //DRAW DIALOGUE
+        _EngineContext->DrawProfilBox();
+        if (_EngineContext->_ShowDialogue)
+        {
+            _EngineContext->DrawTutorial(
+                _EngineContext->currentSpeakerName,
+                { 2.0f, 2.0f },
+                _EngineContext->currentTutorialDialogue
+            );
+        }
     }
 
+    /*=====================*/
     //FIRST ENTRY IN GAMEOVER
+    /*=====================*/
     if (_GameState != EGameState::GameOver && _Player.GetHealth() <= 0) {
         _GameState = EGameState::GameOver;
         _SpawnersPaused = true;
@@ -97,7 +156,9 @@ void GameManager::Update(float elapsedTime)
         _GameOverTimer = 0.0f;
     }
 
+    /*=============*/
     //ACTUAL GAMEOVER
+    /*=============*/
     if (_GameState == EGameState::GameOver)
     {
         for (auto& e : _Explosions)
@@ -117,7 +178,9 @@ void GameManager::Update(float elapsedTime)
         return;
     }
 
-    //PLAYING STATE
+    /*=================*/
+    /*  PLAYING STATE  */
+    /*=================*/
     if (_GameState == EGameState::Playing) {
         /*1. SPAWNER UPDATE*/
         for (auto& spawner : _Spawners)
@@ -282,7 +345,7 @@ void GameManager::Update(float elapsedTime)
             _PowerUpNotifications.end());
 
 		//First boss fight is Chtulhu, so we can check if the score is above 50k to start the fight.
-        if (_Score >= 10.0f && !inBossFight) {
+        if (_Score >= 10000.0f && !inBossFight) {
 			//Stop the spawners and remove all the ennemies on the screen to start the boss fight.
             StartChtulhuFight();
         }
@@ -345,7 +408,6 @@ void GameManager::SpawnEnemyBullet(const olc::vf2d& position, const olc::vf2d& t
     if (_DifficultyLevel == EDifficultyLevel::Easy) { eBullet.SetSpeed(700.0f); }
     if (_DifficultyLevel == EDifficultyLevel::Medium) { eBullet.SetSpeed(800.0f); }
     if (_DifficultyLevel == EDifficultyLevel::Hard) { eBullet.SetSpeed(1000.0f); }
-    std::cout << "EBullet speed : " << eBullet.speed;
     eBullet.sprite = &_EngineContext->EnemyBullet;
     eBullet.decal = new olc::Decal(eBullet.sprite);
 
@@ -837,4 +899,197 @@ void GameManager::DrawPlayerHealthBar(AcademiaEngine* engineContext)
         olc::WHITE,
         2
     );
+}
+
+void GameManager::UpdateTutorial(float elapsedTime)
+{
+    if (!_EngineContext->tutorialActive)
+        return;
+
+    switch (_EngineContext->tutorialStep)
+    {
+        case ETutorialStep::Intro:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "Wake up, cadet.",
+                        "The simulation is starting.",
+                        "I will guide you through the basics."
+                    });
+            }
+
+            _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
+
+            if (!_EngineContext->_ShowDialogue)
+            {
+                _EngineContext->tutorialStep = ETutorialStep::Move;
+                _EngineContext->tutorialStepStarted = false;
+            }
+
+            break;
+        }
+        case ETutorialStep::Move:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "First, movement.",
+                        "Use WASD to move around.",
+                        "Good movement is your best defense."
+                    });
+            }
+
+            _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
+
+            bool moved =
+                _EngineContext->GetKey(olc::Key::W).bHeld ||
+                _EngineContext->GetKey(olc::Key::A).bHeld ||
+                _EngineContext->GetKey(olc::Key::S).bHeld ||
+                _EngineContext->GetKey(olc::Key::D).bHeld;
+
+            if (!_EngineContext->_ShowDialogue && moved)
+            {
+                _EngineContext->tutorialStep = ETutorialStep::Shoot;
+                _EngineContext->tutorialStepStarted = false;
+            }
+
+            break;
+        }
+        case ETutorialStep::Shoot:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "Now attack.",
+                        "Fire your weapon and keep your distance.",
+                        "Destroying enemies charges your combat rhythm."
+                    });
+            }
+
+            _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
+
+            bool shot =
+                _EngineContext->GetMouse(0).bPressed;
+
+            if (!_EngineContext->_ShowDialogue && shot)
+            {
+                _EngineContext->tutorialStep = ETutorialStep::Enemy;
+                _EngineContext->tutorialStepStarted = false;
+            }
+
+            break;
+        }
+        case ETutorialStep::Enemy:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "A hostile entity is entering the arena.",
+                        "Use movement and firepower together.",
+                        "Eliminate it."
+                    });
+
+                // Spawn a tutorial enemy here.
+                // Example:
+                // SpawnTutorialEnemy();
+            }
+
+            _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
+
+            // Replace this with your actual enemy check.
+            bool enemyDefeated = false;
+
+            // Example:
+            // enemyDefeated = tutorialEnemy == nullptr || tutorialEnemy->IsDead();
+
+            if (!_EngineContext->_ShowDialogue && enemyDefeated)
+            {
+                _EngineContext->tutorialStep = ETutorialStep::PowerUp;
+                _EngineContext->tutorialStepStarted = false;
+            }
+
+            break;
+        }
+        case ETutorialStep::PowerUp:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "Power modules can appear during combat.",
+                        "Collect them to modify your build.",
+                        "Choose carefully. Your upgrades shape your run."
+                    });
+
+                // Spawn a powerup here.
+                // SpawnTutorialPowerUp();
+            }
+
+            _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
+
+            // Replace with your real condition.
+            bool powerUpCollected = false;
+
+            // Example:
+            // powerUpCollected = tutorialPowerUp == nullptr || tutorialPowerUp->collected;
+
+            if (!_EngineContext->_ShowDialogue && powerUpCollected)
+            {
+                _EngineContext->tutorialStep = ETutorialStep::BossWarning;
+                _EngineContext->tutorialStepStarted = false;
+            }
+
+            break;
+        }
+        case ETutorialStep::BossWarning:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "That is enough for the basics.",
+                        "Regular waves will test your control.",
+                        "Bosses will test your understanding."
+                    });
+            }
+
+            _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
+
+            if (!_EngineContext->_ShowDialogue)
+            {
+                _EngineContext->tutorialStep = ETutorialStep::Finished;
+                _EngineContext->tutorialStepStarted = false;
+            }
+            break;
+        }
+        case ETutorialStep::Finished:
+        {
+            _EngineContext->tutorialActive = false;
+            _GameState = EGameState::Playing;
+            break;
+        }
+    }
 }

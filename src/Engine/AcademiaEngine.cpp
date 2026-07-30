@@ -5,7 +5,7 @@ static AcademiaEngine* _Instance = nullptr;
 
 AcademiaEngine::AcademiaEngine()
 {
-    sAppName = "AcademiaEngine";
+    sAppName = "AWAKENING OF THE VOID";
 }
 
 bool AcademiaEngine::OnUserCreate(){
@@ -517,7 +517,7 @@ void AcademiaEngine::DrawLobbyPanel()
 
 void AcademiaEngine::DrawFooter()
 {
-    std::string footer = "v0.1  |  Academia Engine";
+    std::string footer = "v0.2  |  AWAKENING OF THE VOID";
     olc::vf2d scale = { 1.0f, 1.0f };
 
     olc::vi2d textSize = GetTextSize(footer);
@@ -795,4 +795,178 @@ AcademiaEngine* AcademiaEngine::Instantiate()
 AcademiaEngine* AcademiaEngine::GetInstance()
 {
     return _Instance;
+}
+
+void AcademiaEngine::UpdateDialogue(
+    float elapsedTime,
+    const std::vector<std::string>& dialogue)
+{
+    if (!_ShowDialogue)
+        return;
+
+    if (_DialogueIndex >= dialogue.size())
+    {
+        _ShowDialogue = false;
+        return;
+    }
+
+    _CharacterTimer += elapsedTime;
+
+    const std::string& currentLine = dialogue[_DialogueIndex];
+
+    if (_CharacterTimer >= 0.035f)
+    {
+        _CharacterTimer = 0.0f;
+
+        if (_VisibleCharacters < currentLine.size())
+        {
+            _VisibleCharacters++;
+            _VisibleDialogueText = dialogue[_DialogueIndex].substr(0, _VisibleCharacters);
+        }
+    }
+
+    bool pressedContinue =
+        GetKey(olc::Key::SPACE).bPressed ||
+        GetKey(olc::Key::ENTER).bPressed;
+
+    if (pressedContinue)
+    {
+        // If text is still typing, instantly reveal it
+        if (_VisibleCharacters < currentLine.size())
+        {
+            _VisibleCharacters = currentLine.size();
+        }
+        else
+        {
+            // Otherwise go to next dialogue line
+            _DialogueIndex++;
+            _VisibleCharacters = 0;
+            _CharacterTimer = 0.0f;
+
+            if (_DialogueIndex >= dialogue.size())
+            {
+                _ShowDialogue = false;
+            }
+        }
+    }
+}
+
+void AcademiaEngine::DrawTutorial(
+    const std::string& name,
+    olc::vf2d scale,
+    const std::vector<std::string>& dialogue)
+{
+    int boxX = 200;
+    int boxY = ScreenHeight() - 200;
+    int boxW = ScreenWidth() - 250;
+    int boxH = 150;
+
+    FillRect(
+        boxX,
+        boxY,
+        boxW,
+        boxH,
+        olc::VERY_DARK_BLUE
+    );
+
+    DrawRect(
+        boxX,
+        boxY,
+        boxW,
+        boxH,
+        olc::WHITE
+    );
+
+    DrawString(
+        boxX + 30,
+        boxY + 20,
+        name,
+        olc::RED,
+        scale.x
+    );
+
+    if (_DialogueIndex < dialogue.size())
+    {
+        std::string visibleText =
+            dialogue[_DialogueIndex].substr(
+                0,
+                _VisibleCharacters
+            );
+
+        DrawString(
+            boxX + 30,
+            boxY + 70,
+            _VisibleDialogueText,
+            olc::WHITE,
+            2
+        );
+    }
+}
+
+void AcademiaEngine::DrawProfilBox() {
+    // -------------------------------------------------
+    // Shadow / depth
+    // -------------------------------------------------
+    FillRectDecal(
+        pos + olc::vf2d(4.0f, 5.0f),
+        size,
+        shadow
+    );
+
+    // -------------------------------------------------
+    // Main background base
+    // -------------------------------------------------
+    FillRectDecal(pos, size, deepPurple);
+
+    // -------------------------------------------------
+    // Fake vertical gradient
+    // -------------------------------------------------
+    for (int y = 0; y < int(size.y); y++)
+    {
+        float k = float(y) / size.y;
+
+        int r = int(70 + (120 * (1.0f - k)));
+        int g = int(20 + (25 * (1.0f - k)));
+        int b = int(120 + (90 * (1.0f - k)));
+
+        FillRectDecal(
+            { pos.x, pos.y + float(y) },
+            { size.x, 1.0f },
+            olc::Pixel(r, g, b)
+        );
+    }
+
+    // -------------------------------------------------
+    // Top highlight strip
+    // -------------------------------------------------
+    FillRectDecal(
+        pos + olc::vf2d(2.0f, 2.0f),
+        { size.x - 4.0f, 2.0f },
+        olc::Pixel(255, 210, 255, 110)
+    );
+
+    // -------------------------------------------------
+    // Bottom depth strip
+    // -------------------------------------------------
+    FillRectDecal(
+        { pos.x + 2.0f, pos.y + size.y - 4.0f },
+        { size.x - 4.0f, 2.0f },
+        olc::Pixel(20, 5, 40, 180)
+    );
+
+    // -------------------------------------------------
+    // Border
+    // -------------------------------------------------
+    DrawRectDecal(
+        pos,
+        size,
+        glowPurple
+    );
+
+    // Inner dark border, gives a bevel feel
+    DrawRectDecal(
+        pos + olc::vf2d(1.0f, 1.0f),
+        size - olc::vf2d(2.0f, 2.0f),
+        olc::Pixel(30, 8, 55, 140)
+    );
 }

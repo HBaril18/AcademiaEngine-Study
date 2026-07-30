@@ -27,6 +27,17 @@ struct OptionsParticle
     float PulseOffset = 0.0f;
 };
 
+enum class ETutorialStep
+{
+    Intro,
+    Move,
+    Shoot,
+    Enemy,
+    PowerUp,
+    BossWarning,
+    Finished
+};
+
 class AcademiaEngine : public olc::PixelGameEngine
 {
 public:
@@ -71,6 +82,43 @@ public:
 	EEngineState GetState() const { return _State; }
 	EEngineState GetPendingState() const { return _PendingState; }
 
+    //DIALOGUE
+    void UpdateDialogue(float elapsedTime, const std::vector<std::string>& dialogue);
+    void DrawTutorial(
+        const std::string& name,
+        olc::vf2d scale,
+        const std::vector<std::string>& dialogue);
+    void DrawProfilBox();
+    void StartDialogue(
+        const std::string& speaker,
+        const std::vector<std::string>& lines)
+    {
+        currentSpeakerName = speaker;
+        currentTutorialDialogue = lines;
+
+        _DialogueIndex = 0;
+        _VisibleCharacters = 0;
+        _CharacterTimer = 0.0f;
+        DialogueTimer = 0.0f;
+        _ShowDialogue = true;
+    }
+    int _DialogueIndex;
+    bool _ShowDialogue;
+    float _CharacterTimer = 0.0f;
+    int _VisibleCharacters = 0;
+    float DialogueTimer = 0.0f;
+    std::string _VisibleDialogueText;
+    
+    olc::Pixel purple = olc::Pixel(170, 45, 255);
+    olc::Pixel darkPurple = olc::Pixel(55, 15, 95);
+    olc::Pixel deepPurple = olc::Pixel(22, 10, 42);
+    olc::Pixel white = olc::Pixel(235, 220, 255);
+    olc::Pixel glowPurple = olc::Pixel(220, 90, 255);
+    olc::Pixel shadow = olc::Pixel(0, 0, 0, 120);
+    olc::Pixel textShadow = olc::Pixel(20, 5, 35, 180);
+    olc::vf2d pos = { 25.0f, ScreenHeight() - 195.0f };
+    olc::vf2d size = { 150.0f, 150.0f };
+
     olc::Sprite RedSlimeSheet;
     olc::Sprite YellowSlimeSheet;
     olc::Sprite BulletSheet;
@@ -91,6 +139,14 @@ public:
 	olc::Decal* LobbyBGDecal = nullptr;
 	olc::Decal* OptionsBGDecal = nullptr;
     olc::Decal* EnemyBulletDecal = nullptr;
+
+    ETutorialStep tutorialStep = ETutorialStep::Intro;
+
+    bool tutorialActive = true;
+    bool tutorialStepStarted = false;
+
+    std::vector<std::string> currentTutorialDialogue;
+    std::string currentSpeakerName = "Academia";
 
 private:
 

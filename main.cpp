@@ -13,8 +13,6 @@ int main(int argc, char* argv[])
     }
 
     if (engine->Construct(width, height, 1, 1, true)) {
-		std::cout << "Starting engine...\n";
-		std::cout << "Screen size: " << width << "x" << height << "\n";
         engine->Start();
     }
  

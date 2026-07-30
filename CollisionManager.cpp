@@ -196,7 +196,7 @@ std::vector<PowerUp*> CollisionManager::GetPowerUp()
 
 	// fallback: infer enemies from colliders registered
 	for (auto* c : colliders) {
-		if (c && c->owner && c->layer == 2) {
+		if (c && c->owner && c->layer == 0) {
 			result.push_back(static_cast<PowerUp*>(c->owner));
 		}
 	}
@@ -217,247 +217,70 @@ void CollisionManager::UnregisterCollider(Collider* collider)
 
 void CollisionManager::Update(float elapsedTime)
 {
-	std::unordered_set<uint64_t> processedPairs;
-
-	int bulletCount = 0;
-	int enemyCount = 0;
-
-	for (auto* c : colliders)
-	{
-		if (c->layer == 2) enemyCount++;
-		if (c->layer == 3) bulletCount++;
-	}
-
 	BuildGrid();
-	int collCount = static_cast<int>(colliders.size());
-	for (Collider* colliderA : colliders)
+
+	for (auto& [key, cell] : grid)
 	{
-		if (!colliderA->enabled)
-			continue;
+		auto& cellColliders = cell;
 
-		auto nearby =
-			GetNearbyColliders(
-				colliderA->position);
-
-		for (Collider* colliderB :
-			nearby)
+		// Check pairs inside the same cell
+		for (size_t i = 0; i < cellColliders.size(); i++)
 		{
-			//CHECKS IF ITS NOT THE SAME COLLIDER
-			if (colliderA == colliderB)
-				continue;
-
-			uintptr_t low =
-				reinterpret_cast<uintptr_t>(
-					std::min(colliderA, colliderB));
-
-			uintptr_t high =
-				reinterpret_cast<uintptr_t>(
-					std::max(colliderA, colliderB));
-
-			uint64_t key =
-				((uint64_t)low) ^
-				(((uint64_t)high) << 1);
-
-			if (!processedPairs.insert(key).second)
+			for (size_t j = i + 1; j < cellColliders.size(); j++)
 			{
-				continue;
+				CheckCollision(
+					cellColliders[i],
+					cellColliders[j],
+					elapsedTime);
 			}
+		}
 
-			//BASICS CHECKS
-			if (!colliderA->enabled || !colliderB->enabled) continue;
-			if (colliderA->owner == nullptr || colliderB->owner == nullptr) continue;
-			if (!player) continue;
-			if (colliderA->layer < 0 || colliderA->layer >= 5 || colliderB->layer < 0 || colliderB->layer >= 5){ continue; }
+		// Check right cell
+		CellKey right{ key.x + 1, key.y };
+		auto it = grid.find(right);
 
-			int a = colliderA->layer;
-			int b = colliderB->layer;
-			if (!collisionMatrix[a][b]) continue;
+		if (it != grid.end())
+		{
+			CheckCellAgainstCell(
+				cellColliders,
+				it->second,
+				elapsedTime);
+		}
 
-			//SWEEP TEST FOR FAST BULLETS
-			// Circle vs Circle collision logic
-			if (colliderA->type == Collider::EColliderType::Circle && colliderB->type == Collider::EColliderType::Circle) {
-				olc::vf2d delta = colliderB->position - colliderA->position;
-				float distanceSquared = delta.mag2();
-				float radiusSum = colliderA->size + colliderB->size;
-				// Standard overlap test
-				bool overlap = (distanceSquared < radiusSum * radiusSum);
-				// Additional sweep/tunneling test for bullet vs enemy: perform segment-circle test
-				if (!overlap) {
-					// Check for enemy-bullet pair and attempt sweep test
-					bool isEnemyBullet = ((a == 2 && b == 3) || (a == 3 && b == 2));
-					if (isEnemyBullet) {
-						Ennemies* enemy = nullptr;
-						Bullet* bullet = nullptr;
-						if (a == 2) { enemy = static_cast<Ennemies*>(colliderA->owner); bullet = static_cast<Bullet*>(colliderB->owner); }
-						else { enemy = static_cast<Ennemies*>(colliderB->owner); bullet = static_cast<Bullet*>(colliderA->owner); }
-						if (enemy && bullet) {
-							if (!bullet ||
-								bullet->markedForRemoval ||
-								!bullet->collider ||
-								!bullet->collider->enabled)
-							{
-								continue;
-							}
-							// segment from previousPosition to current Position
-							olc::vf2d p1 = bullet->GetPreviousPosition();
-							olc::vf2d p2 = bullet->GetPosition();
-							olc::vf2d c = enemy->GetPosition();
-							olc::vf2d d = p2 - p1;
-							float len2 = d.mag2();
-							if (len2 > 0.0f) {
-								float t = ((c - p1).dot(d)) / len2;
-								t = std::fmax(0.0f, std::fmin(1.0f, t));
-								olc::vf2d closest = p1 + d * t;
-								float dist2 = (closest - c).mag2();
-								float radius =
-									enemy->GetRadius() +
-									bullet->GetRadius();
+		// Check bottom cell
+		CellKey bottom{ key.x, key.y + 1 };
+		it = grid.find(bottom);
 
-								if (dist2 < radius * radius)
-								{
-									overlap = true;
-								}
-							}
-						}
-					}
-				}
-				if (overlap) {
-					// Player-Enemy
-					if ((a == 1 && b == 2) || (a == 2 && b == 1)) {
-						Player* p = player;
-						Ennemies* e = nullptr;
+		if (it != grid.end())
+		{
+			CheckCellAgainstCell(
+				cellColliders,
+				it->second,
+				elapsedTime);
+		}
 
-						if (a == 2)
-							e = static_cast<Ennemies*>(colliderA->owner);
-						else
-							e = static_cast<Ennemies*>(colliderB->owner);
+		// Check bottom-right cell
+		CellKey bottomRight{ key.x + 1, key.y + 1 };
+		it = grid.find(bottomRight);
 
-						if (p && e && p->damageCooldown <= 0.0f)
-						{
-							//Damage
-							if (p->GetShield() > 0) {
-								p->RemoveShield();
-							}
-							else {
-								p->TakeDamage(10.0f);
-							}
-							p->damageCooldown = p->damageDelay;
+		if (it != grid.end())
+		{
+			CheckCellAgainstCell(
+				cellColliders,
+				it->second,
+				elapsedTime);
+		}
 
-							//Knockback direction
-							olc::vf2d dir = p->GetPosition() - e->GetPosition();
+		// Check bottom-left cell
+		CellKey bottomLeft{ key.x - 1, key.y + 1 };
+		it = grid.find(bottomLeft);
 
-							if (dir.mag2() > 0.001f)
-								dir = dir.norm();
-
-							//Apply force
-							float knockbackStrength = 550.0f;
-							p->knockbackVelocity += dir * knockbackStrength;
-							//Ennemie Knockback
-							e->recoilVelocity -= dir * 300.0f;
-						}
-					}
-					// Enemy-Bullet
-					else if ((a == 2 && b == 3) || (a == 3 && b == 2))
-					{
-						Ennemies* enemy = nullptr;
-						Bullet* bullet = nullptr;
-
-						if (a == 2)
-						{
-							enemy = static_cast<Ennemies*>(colliderA->owner);
-							bullet = static_cast<Bullet*>(colliderB->owner);
-						}
-						else
-						{
-							enemy = static_cast<Ennemies*>(colliderB->owner);
-							bullet = static_cast<Bullet*>(colliderA->owner);
-						}
-
-						if (!enemy || !bullet)
-							continue;
-
-						if (bullet->markedForRemoval ||
-							!bullet->collider ||
-							!bullet->collider->enabled)
-						{
-							continue;
-						}
-
-						enemy->TakeDamage(
-							10.0f * player->GetDamageMultiplier(),
-							elapsedTime
-						);
-
-						RemoveBullet(bullet);
-						break;
-					}
-					// EnemyBullet_Player
-					else if ((a == 4 && b == 1) || (a == 1 && b == 4))
-					{
-						EnemyBullet* enemyBullet = nullptr;
-						Player* player = nullptr;
-
-						if (a == 4)
-						{
-							enemyBullet = static_cast<EnemyBullet*>(colliderA->owner);
-							player = static_cast<Player*>(colliderB->owner);
-						}
-						else
-						{
-							enemyBullet = static_cast<EnemyBullet*>(colliderB->owner);
-							player = static_cast<Player*>(colliderA->owner);
-						}
-
-						if (!enemyBullet || !player)
-							continue;
-
-						if (enemyBullet->markedForRemoval ||
-							!enemyBullet->collider ||
-							!enemyBullet->collider->enabled)
-						{
-							continue;
-						}
-						if (player->damageCooldown <= 0.0f)
-						{
-								if (player->GetShield() > 0)
-								{
-									player->RemoveShield();
-								}
-								else
-								{
-									player->TakeDamage(enemyBullet->damage);
-								}
-
-								player->damageCooldown = player->damageDelay;
-						}
-
-						enemyBullet->markedForRemoval = true;
-
-							if (enemyBullet->collider)
-								enemyBullet->collider->enabled = false;
-					}
-					// Player-PowerUp
-					else if ((a == 1 && b == 0) || (a == 0 && b == 1)) {
-						Player* player = nullptr;
-						PowerUp* powerUp = nullptr;
-						if (a == 1) {
-							player = static_cast<Player*>(colliderA->owner);
-							powerUp = static_cast<PowerUp*>(colliderB->owner);
-						}
-						else {
-							powerUp = static_cast<PowerUp*>(colliderA->owner);
-							player = static_cast<Player*>(colliderB->owner);
-						}
-						if (powerUp && player) {
-							powerUp->Apply(*player);
-							powerUp->collected = true;
-							powerUp->markedForRemoval = true;
-							RemoveColliderPowerUp(powerUp);
-						}
-					}
-				}
-			}
-			/*CONTINUE HERE*/
+		if (it != grid.end())
+		{
+			CheckCellAgainstCell(
+				cellColliders,
+				it->second,
+				elapsedTime);
 		}
 	}
 
@@ -470,4 +293,281 @@ void CollisionManager::Update(float elapsedTime)
 	}
 
 	pendingPowerUpRemovals.clear();
+}
+
+void CollisionManager::CheckCollision(
+	Collider* colliderA,
+	Collider* colliderB,
+	float elapsedTime)
+{
+	if (!colliderA || !colliderB)
+		return;
+
+	if (colliderA == colliderB)
+		return;
+
+	if (!colliderA->enabled || !colliderB->enabled)
+		return;
+
+	if (!colliderA->owner || !colliderB->owner)
+		return;
+
+	if (!player)
+		return;
+
+	if (colliderA->layer < 0 || colliderA->layer >= 5)
+		return;
+
+	if (colliderB->layer < 0 || colliderB->layer >= 5)
+		return;
+
+	int a = colliderA->layer;
+	int b = colliderB->layer;
+
+	if (!collisionMatrix[a][b])
+		return;
+
+	if (colliderA->type != Collider::EColliderType::Circle ||
+		colliderB->type != Collider::EColliderType::Circle)
+	{
+		return;
+	}
+
+	olc::vf2d delta = colliderB->position - colliderA->position;
+	float distanceSquared = delta.mag2();
+
+	float radiusSum = colliderA->size + colliderB->size;
+	bool overlap = distanceSquared < radiusSum * radiusSum;
+
+	// Sweep test for fast player bullets vs enemies
+	if (!overlap)
+	{
+		bool isEnemyBullet =
+			(a == 2 && b == 3) ||
+			(a == 3 && b == 2);
+
+		if (isEnemyBullet)
+		{
+			Ennemies* enemy = nullptr;
+			Bullet* bullet = nullptr;
+
+			if (a == 2)
+			{
+				enemy = static_cast<Ennemies*>(colliderA->owner);
+				bullet = static_cast<Bullet*>(colliderB->owner);
+			}
+			else
+			{
+				enemy = static_cast<Ennemies*>(colliderB->owner);
+				bullet = static_cast<Bullet*>(colliderA->owner);
+			}
+
+			if (!enemy || !bullet)
+				return;
+
+			if (bullet->markedForRemoval ||
+				!bullet->collider ||
+				!bullet->collider->enabled)
+			{
+				return;
+			}
+
+			olc::vf2d p1 = bullet->GetPreviousPosition();
+			olc::vf2d p2 = bullet->GetPosition();
+			olc::vf2d c = enemy->GetPosition();
+			olc::vf2d d = p2 - p1;
+
+			float len2 = d.mag2();
+
+			if (len2 > 0.0f)
+			{
+				float t = ((c - p1).dot(d)) / len2;
+				t = std::fmax(0.0f, std::fmin(1.0f, t));
+
+				olc::vf2d closest = p1 + d * t;
+
+				float dist2 = (closest - c).mag2();
+
+				float radius =
+					enemy->GetRadius() +
+					bullet->GetRadius();
+
+				if (dist2 < radius * radius)
+				{
+					overlap = true;
+				}
+			}
+		}
+	}
+
+	if (!overlap)
+		return;
+
+	// Player-Enemy
+	if ((a == 1 && b == 2) || (a == 2 && b == 1))
+	{
+		Player* p = player;
+		Ennemies* e = nullptr;
+
+		if (a == 2)
+			e = static_cast<Ennemies*>(colliderA->owner);
+		else
+			e = static_cast<Ennemies*>(colliderB->owner);
+
+		if (p && e && p->damageCooldown <= 0.0f)
+		{
+			if (p->GetShield() > 0)
+			{
+				p->RemoveShield();
+			}
+			else
+			{
+				p->TakeDamage(10.0f);
+			}
+
+			p->damageCooldown = p->damageDelay;
+
+			olc::vf2d dir = p->GetPosition() - e->GetPosition();
+
+			if (dir.mag2() > 0.001f)
+				dir = dir.norm();
+
+			float knockbackStrength = 550.0f;
+
+			p->knockbackVelocity += dir * knockbackStrength;
+			e->recoilVelocity -= dir * 300.0f;
+		}
+
+		return;
+	}
+
+	// Enemy-Bullet
+	if ((a == 2 && b == 3) || (a == 3 && b == 2))
+	{
+		Ennemies* enemy = nullptr;
+		Bullet* bullet = nullptr;
+
+		if (a == 2)
+		{
+			enemy = static_cast<Ennemies*>(colliderA->owner);
+			bullet = static_cast<Bullet*>(colliderB->owner);
+		}
+		else
+		{
+			enemy = static_cast<Ennemies*>(colliderB->owner);
+			bullet = static_cast<Bullet*>(colliderA->owner);
+		}
+
+		if (!enemy || !bullet)
+			return;
+
+		if (bullet->markedForRemoval ||
+			!bullet->collider ||
+			!bullet->collider->enabled)
+		{
+			return;
+		}
+
+		enemy->TakeDamage(
+			10.0f * player->GetDamageMultiplier(),
+			elapsedTime);
+
+		RemoveBullet(bullet);
+
+		return;
+	}
+
+	// EnemyBullet-Player
+	if ((a == 4 && b == 1) || (a == 1 && b == 4))
+	{
+		EnemyBullet* enemyBullet = nullptr;
+		Player* p = nullptr;
+
+		if (a == 4)
+		{
+			enemyBullet = static_cast<EnemyBullet*>(colliderA->owner);
+			p = static_cast<Player*>(colliderB->owner);
+		}
+		else
+		{
+			enemyBullet = static_cast<EnemyBullet*>(colliderB->owner);
+			p = static_cast<Player*>(colliderA->owner);
+		}
+
+		if (!enemyBullet || !p)
+			return;
+
+		if (enemyBullet->markedForRemoval ||
+			!enemyBullet->collider ||
+			!enemyBullet->collider->enabled)
+		{
+			return;
+		}
+
+		if (p->damageCooldown <= 0.0f)
+		{
+			if (p->GetShield() > 0)
+			{
+				p->RemoveShield();
+			}
+			else
+			{
+				p->TakeDamage(enemyBullet->damage);
+			}
+
+			p->damageCooldown = p->damageDelay;
+		}
+
+		enemyBullet->markedForRemoval = true;
+
+		if (enemyBullet->collider)
+			enemyBullet->collider->enabled = false;
+
+		return;
+	}
+
+	// Player-PowerUp
+	if ((a == 1 && b == 0) || (a == 0 && b == 1))
+	{
+		Player* p = nullptr;
+		PowerUp* pu = nullptr;
+
+		if (a == 1)
+		{
+			p = static_cast<Player*>(colliderA->owner);
+			pu = static_cast<PowerUp*>(colliderB->owner);
+		}
+		else
+		{
+			pu = static_cast<PowerUp*>(colliderA->owner);
+			p = static_cast<Player*>(colliderB->owner);
+		}
+
+		if (pu && p)
+		{
+			pu->Apply(*p);
+			pu->collected = true;
+			pu->markedForRemoval = true;
+			RemoveColliderPowerUp(pu);
+		}
+
+		return;
+	}
+}
+
+void CollisionManager::CheckCellAgainstCell(
+	const std::vector<Collider*>& a,
+	const std::vector<Collider*>& b,
+	float elapsedTime)
+{
+	for (Collider* c1 : a)
+	{
+		for (Collider* c2 : b)
+		{
+			CheckCollision(
+				c1,
+				c2,
+				elapsedTime);
+		}
+	}
 }
