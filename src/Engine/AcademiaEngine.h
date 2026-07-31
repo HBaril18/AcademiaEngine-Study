@@ -35,6 +35,7 @@ enum class ETutorialStep
     Enemy,
     PowerUp,
     BossWarning,
+    CompleteMessage,
     Finished
 };
 
@@ -102,6 +103,7 @@ public:
         DialogueTimer = 0.0f;
         _ShowDialogue = true;
     }
+    bool IsDialogueLineComplete(const std::vector<std::string>& dialogue) const;
     int _DialogueIndex;
     bool _ShowDialogue;
     float _CharacterTimer = 0.0f;
@@ -116,7 +118,7 @@ public:
     olc::Pixel glowPurple = olc::Pixel(220, 90, 255);
     olc::Pixel shadow = olc::Pixel(0, 0, 0, 120);
     olc::Pixel textShadow = olc::Pixel(20, 5, 35, 180);
-    olc::vf2d pos = { 25.0f, ScreenHeight() - 195.0f };
+    olc::vf2d pos = { 25.0f, 880.0f };
     olc::vf2d size = { 150.0f, 150.0f };
 
     olc::Sprite RedSlimeSheet;

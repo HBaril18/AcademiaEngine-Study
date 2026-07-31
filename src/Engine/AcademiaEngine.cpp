@@ -821,7 +821,7 @@ void AcademiaEngine::UpdateDialogue(
         if (_VisibleCharacters < currentLine.size())
         {
             _VisibleCharacters++;
-            _VisibleDialogueText = dialogue[_DialogueIndex].substr(0, _VisibleCharacters);
+            _VisibleDialogueText = currentLine.substr(0, _VisibleCharacters);
         }
     }
 
@@ -835,6 +835,7 @@ void AcademiaEngine::UpdateDialogue(
         if (_VisibleCharacters < currentLine.size())
         {
             _VisibleCharacters = currentLine.size();
+            _VisibleDialogueText = currentLine;
         }
         else
         {
@@ -856,6 +857,9 @@ void AcademiaEngine::DrawTutorial(
     olc::vf2d scale,
     const std::vector<std::string>& dialogue)
 {
+    if (!_ShowDialogue)
+        return;
+
     int boxX = 200;
     int boxY = ScreenHeight() - 200;
     int boxW = ScreenWidth() - 250;
@@ -877,6 +881,7 @@ void AcademiaEngine::DrawTutorial(
         olc::WHITE
     );
 
+    // Speaker name
     DrawString(
         boxX + 30,
         boxY + 20,
@@ -885,21 +890,40 @@ void AcademiaEngine::DrawTutorial(
         scale.x
     );
 
+    // Dialogue text
+    DrawString(
+        boxX + 30,
+        boxY + 60,
+        _VisibleDialogueText,
+        olc::WHITE,
+        scale.x
+    );
+
+    // Skip / continue prompt
     if (_DialogueIndex < dialogue.size())
     {
-        std::string visibleText =
-            dialogue[_DialogueIndex].substr(
-                0,
-                _VisibleCharacters
-            );
+        bool lineComplete = _VisibleCharacters >= dialogue[_DialogueIndex].size();
 
-        DrawString(
-            boxX + 30,
-            boxY + 70,
-            _VisibleDialogueText,
-            olc::WHITE,
-            2
-        );
+        if (lineComplete)
+        {
+            DrawString(
+                boxX + 30,
+                boxY + 120,
+                "Press SPACE or ENTER to continue",
+                olc::YELLOW,
+                1
+            );
+        }
+        else
+        {
+            DrawString(
+                boxX + 30,
+                boxY + 120,
+                "Press SPACE or ENTER to skip",
+                olc::GREY,
+                1
+            );
+        }
     }
 }
 
@@ -969,4 +993,15 @@ void AcademiaEngine::DrawProfilBox() {
         size - olc::vf2d(2.0f, 2.0f),
         olc::Pixel(30, 8, 55, 140)
     );
+}
+
+bool AcademiaEngine::IsDialogueLineComplete(const std::vector<std::string>& dialogue) const
+{
+    if (!_ShowDialogue)
+        return false;
+
+    if (_DialogueIndex >= dialogue.size())
+        return false;
+
+    return _VisibleCharacters >= dialogue[_DialogueIndex].size();
 }

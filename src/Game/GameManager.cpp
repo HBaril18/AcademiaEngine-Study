@@ -92,6 +92,7 @@ void GameManager::Update(float elapsedTime)
         //UPDATE PLAYER
         _Player.Update(*_EngineContext, elapsedTime);
         //UPDATE ENEMY
+        Ennemies::RemoveEnnemie(_Enemies, *_EngineContext);
         for (auto& enemyPtr : _Enemies)
         {
             enemyPtr->Update(*_EngineContext, elapsedTime);
@@ -112,6 +113,11 @@ void GameManager::Update(float elapsedTime)
         {
             bullet.Update(*_EngineContext, elapsedTime);
         }
+        //UPDATE POWERUP
+        for (auto& p : _PowerUps)
+        {
+            p->Update(*_EngineContext, elapsedTime);
+        }
         //UPDATE COLLISION
         _CollisionManager.Update(elapsedTime);
         //CLEAN BULLET
@@ -129,6 +135,11 @@ void GameManager::Update(float elapsedTime)
         //DRAW PLAYER
         _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
         _Player.Draw(*_EngineContext);
+        //DRAW POWERUP
+        for (auto& p : _PowerUps)
+        {
+            p->Draw(*_EngineContext);
+        }
         //DRAW DIALOGUE
         _EngineContext->DrawProfilBox();
         if (_EngineContext->_ShowDialogue)
@@ -950,13 +961,10 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
             _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
 
-            bool moved =
-                _EngineContext->GetKey(olc::Key::W).bHeld ||
-                _EngineContext->GetKey(olc::Key::A).bHeld ||
-                _EngineContext->GetKey(olc::Key::S).bHeld ||
-                _EngineContext->GetKey(olc::Key::D).bHeld;
+            bool movedWASD = _EngineContext->GetKey(olc::Key::W).bHeld || _EngineContext->GetKey(olc::Key::A).bHeld ||
+                _EngineContext->GetKey(olc::Key::S).bHeld || _EngineContext->GetKey(olc::Key::D).bHeld;
 
-            if (!_EngineContext->_ShowDialogue && moved)
+            if (!_EngineContext->_ShowDialogue && movedWASD)
             {
                 _EngineContext->tutorialStep = ETutorialStep::Shoot;
                 _EngineContext->tutorialStepStarted = false;
@@ -1006,18 +1014,14 @@ void GameManager::UpdateTutorial(float elapsedTime)
                         "Eliminate it."
                     });
 
-                // Spawn a tutorial enemy here.
-                // Example:
-                // SpawnTutorialEnemy();
+                SpawnEnemy(EEnemyType::Basic, { 1,1 });
             }
 
             _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
 
-            // Replace this with your actual enemy check.
             bool enemyDefeated = false;
 
-            // Example:
-            // enemyDefeated = tutorialEnemy == nullptr || tutorialEnemy->IsDead();
+            if (_Enemies.size() <= 0) enemyDefeated = true;
 
             if (!_EngineContext->_ShowDialogue && enemyDefeated)
             {
@@ -1036,22 +1040,23 @@ void GameManager::UpdateTutorial(float elapsedTime)
                 _EngineContext->StartDialogue(
                     "Academia",
                     {
-                        "Power modules can appear during combat.",
-                        "Collect them to modify your build.",
-                        "Choose carefully. Your upgrades shape your run."
+                        "Power modules can appear during combat when defeating monsters.",
+                        "Collect them to enhanced your build momentarily."
                     });
 
-                // Spawn a powerup here.
-                // SpawnTutorialPowerUp();
+                //SPAWN A POWER UP
+                _PowerUps.emplace_back(std::make_unique<PowerUp>(
+                    olc::vf2d{ (float)_EngineContext->ScreenWidth() / 2.0f, 200.0f },
+                    9.0f,
+                    PowerUpType::Heal
+                ));
             }
 
             _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
 
-            // Replace with your real condition.
             bool powerUpCollected = false;
 
-            // Example:
-            // powerUpCollected = tutorialPowerUp == nullptr || tutorialPowerUp->collected;
+            if (_PowerUps.size() <= 0) powerUpCollected = true;
 
             if (!_EngineContext->_ShowDialogue && powerUpCollected)
             {
@@ -1080,9 +1085,37 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
             if (!_EngineContext->_ShowDialogue)
             {
+                _EngineContext->tutorialStep = ETutorialStep::CompleteMessage;
+                _EngineContext->tutorialStepStarted = false;
+            }
+            break;
+        }
+        case ETutorialStep::CompleteMessage:
+        {
+            if (!_EngineContext->tutorialStepStarted)
+            {
+                _EngineContext->tutorialStepStarted = true;
+
+                _EngineContext->StartDialogue(
+                    "Academia",
+                    {
+                        "Tutorial complete.",
+                        "You are ready.",
+                        "Survive as long as you can pilot."
+                    });
+            }
+
+            _EngineContext->UpdateDialogue(
+                elapsedTime,
+                _EngineContext->currentTutorialDialogue
+            );
+
+            if (!_EngineContext->_ShowDialogue)
+            {
                 _EngineContext->tutorialStep = ETutorialStep::Finished;
                 _EngineContext->tutorialStepStarted = false;
             }
+
             break;
         }
         case ETutorialStep::Finished:
