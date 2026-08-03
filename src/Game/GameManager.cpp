@@ -1,12 +1,12 @@
-#include "GameManager.h"
-#include "../../external/olc/olcPixelGameEngine.h"
-#include "../Engine/AcademiaEngine.h" 
 #include <chrono>
 #include <memory>
 #include <mutex>
 #include <random>
-#include "LightEnemy.h"
-#include "Cthulhu.h"
+#include "GameManager.h"
+#include "../../external/olc/olcPixelGameEngine.h"
+#include "../Engine/AcademiaEngine.h" 
+#include "../../LightEnemy.h"
+#include "../../Cthulhu.h"
 
 
 GameManager::GameManager(AcademiaEngine* engine)
@@ -84,6 +84,18 @@ void GameManager::Update(float elapsedTime)
     std::vector<float> direction = { x, y };
     _Player.AddForce(*_EngineContext, 180.0f, direction, elapsedTime);
 
+	//SKIP THE TUTORIAL AND GO STRAIGHT TO THE GAMEPLAY
+	if (_EngineContext->GetKey(olc::Key::X).bPressed) {
+		_GameState = EGameState::Playing;
+	}
+
+    //TIMER TO SKIP THE TUTORIAL
+    if (_tutorialSkipHintTimer > 0.0f)
+    {
+        _tutorialSkipHintTimer -= elapsedTime;
+        _skipBlinkTimer += elapsedTime;
+    }
+
     /*========================================*/
     //INTRO TO INTRODUCE MECHANICS TO THE PLAYER
     /*========================================*/
@@ -116,6 +128,7 @@ void GameManager::Update(float elapsedTime)
         //UPDATE POWERUP
         for (auto& p : _PowerUps)
         {
+			p->SetGameManager(this);
             p->Update(*_EngineContext, elapsedTime);
         }
         //UPDATE COLLISION
@@ -140,6 +153,32 @@ void GameManager::Update(float elapsedTime)
         {
             p->Draw(*_EngineContext);
         }
+		//REMOVE POWERUP
+        _PowerUps.erase(
+            std::remove_if(
+                _PowerUps.begin(),
+                _PowerUps.end(),
+                [](const std::unique_ptr<PowerUp>& p)
+                {
+                    return p->markedForRemoval;
+                }),
+            _PowerUps.end());
+
+        for (auto& n : _PowerUpNotifications)
+        {
+            n.timer -= elapsedTime;
+        }
+
+        _PowerUpNotifications.erase(
+            std::remove_if(
+                _PowerUpNotifications.begin(),
+                _PowerUpNotifications.end(),
+                [](const PowerUpNotification& n)
+                {
+                    return n.timer <= 0.0f;
+                }),
+            _PowerUpNotifications.end());
+
         //DRAW DIALOGUE
         _EngineContext->DrawProfilBox();
         if (_EngineContext->_ShowDialogue)
@@ -317,15 +356,12 @@ void GameManager::Update(float elapsedTime)
         // PLAYER DRAW
         _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
         _Player.Draw(*_EngineContext);
-    }
 
-#ifdef ACADEMIA_EXAMPLE
-    if (_GameState == EGameState::Playing) {
         Ennemies::RemoveEnnemie(_Enemies, *_EngineContext);
 
         for (auto& p : _PowerUps)
         {
-            //p->SetGameManager(this);
+            p->SetGameManager(this);
             p->Update(*_EngineContext, elapsedTime);
             p->Draw(*_EngineContext);
         }
@@ -355,9 +391,9 @@ void GameManager::Update(float elapsedTime)
                 }),
             _PowerUpNotifications.end());
 
-		//First boss fight is Chtulhu, so we can check if the score is above 50k to start the fight.
+        //First boss fight is Chtulhu, so we can check if the score is above 50k to start the fight.
         if (_Score >= 10000.0f && !inBossFight) {
-			//Stop the spawners and remove all the ennemies on the screen to start the boss fight.
+            //Stop the spawners and remove all the ennemies on the screen to start the boss fight.
             StartChtulhuFight();
         }
         if (_Cthulhu) {
@@ -372,7 +408,7 @@ void GameManager::Update(float elapsedTime)
                 ResumeGame();
             }
         }
-    } 
+    }
     else {
         // On start screen, still draw cursor so player can aim and shoot buttons
         _Player.DrawCursor(*_EngineContext, _Player.GetCursorPosition(*_EngineContext));
@@ -394,9 +430,12 @@ void GameManager::Update(float elapsedTime)
 
     // UI code
     DrawPlayerHealthBar(_EngineContext);
-
     DrawUI();
     DrawPowerUpUI();
+    if (_GameState == EGameState::Intro)
+    {
+        DrawSkipTutorial(elapsedTime);
+    }
     _EngineContext->DrawString(10, 12, "FPS : " + std::to_string(_EngineContext->GetFPS()), alertUIYellow, 2);
 
     // Only increase score during active gameplay (not on start screen or when game over)
@@ -405,7 +444,6 @@ void GameManager::Update(float elapsedTime)
         float scoreIncrement = elapsedTime * 5.0f; // base increment
         AddScore(scoreIncrement);
     }
-#endif
 }
 
 void GameManager::SpawnEnemyBullet(const olc::vf2d& position, const olc::vf2d& target)
@@ -490,10 +528,16 @@ void GameManager::DrawPowerUpUI()
         olc::Pixel color = alertUIYellow;
         color.a = static_cast<uint8_t>(255.0f * alpha);
 
+        std::string text = n.text;
+
+        int x =
+            (_EngineContext->ScreenWidth() -
+                text.size() * 8 * 2) / 2;
+
         _EngineContext->DrawString(
-            _EngineContext->ScreenWidth() / 2,
+            x,
             y,
-            n.text,
+            text,
             color,
             2
         );
@@ -912,6 +956,30 @@ void GameManager::DrawPlayerHealthBar(AcademiaEngine* engineContext)
     );
 }
 
+void GameManager::DrawSkipTutorial(float elapsedTime)
+{
+    if (_tutorialSkipHintTimer <= 0.0f)
+        return;
+
+    float t = (sinf(_skipBlinkTimer * 6.0f) + 1.0f) * 0.5f;
+
+    olc::Pixel color = alertUIYellow;
+    color.a = (uint8_t)(255.0f * t);
+
+    std::string text = "PRESS [X] TO SKIP TUTORIAL";
+
+    int scale = 2;
+    int textWidth = (int)text.size() * 8 * scale;
+
+    _EngineContext->DrawString(
+        _EngineContext->ScreenWidth() - textWidth - 20,
+        100,
+        text,
+        color,
+        scale
+    );
+}
+
 void GameManager::UpdateTutorial(float elapsedTime)
 {
     if (!_EngineContext->tutorialActive)
@@ -966,8 +1034,7 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
             if (!_EngineContext->_ShowDialogue && movedWASD)
             {
-                _EngineContext->tutorialStep = ETutorialStep::Shoot;
-                _EngineContext->tutorialStepStarted = false;
+                StartTransition(ETutorialStep::Shoot);
             }
 
             break;
@@ -981,9 +1048,9 @@ void GameManager::UpdateTutorial(float elapsedTime)
                 _EngineContext->StartDialogue(
                     "Academia",
                     {
+                        "you seem's use to drive that ship.",
                         "Now attack.",
-                        "Fire your weapon and keep your distance.",
-                        "Destroying enemies charges your combat rhythm."
+                        "Fire your weapon and keep your distance."
                     });
             }
 
@@ -994,8 +1061,7 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
             if (!_EngineContext->_ShowDialogue && shot)
             {
-                _EngineContext->tutorialStep = ETutorialStep::Enemy;
-                _EngineContext->tutorialStepStarted = false;
+                StartTransition(ETutorialStep::Enemy);
             }
 
             break;
@@ -1014,7 +1080,7 @@ void GameManager::UpdateTutorial(float elapsedTime)
                         "Eliminate it."
                     });
 
-                SpawnEnemy(EEnemyType::Basic, { 1,1 });
+                SpawnEnemy(EEnemyType::Basic, { 800, 500 });
             }
 
             _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
@@ -1025,8 +1091,7 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
             if (!_EngineContext->_ShowDialogue && enemyDefeated)
             {
-                _EngineContext->tutorialStep = ETutorialStep::PowerUp;
-                _EngineContext->tutorialStepStarted = false;
+                StartTransition(ETutorialStep::PowerUp);
             }
 
             break;
@@ -1046,10 +1111,26 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
                 //SPAWN A POWER UP
                 _PowerUps.emplace_back(std::make_unique<PowerUp>(
-                    olc::vf2d{ (float)_EngineContext->ScreenWidth() / 2.0f, 200.0f },
+                    olc::vf2d{ (float)_EngineContext->ScreenWidth() / 2.0f - 200.0f, 200.0f },
                     9.0f,
                     PowerUpType::Heal
                 ));
+
+				for (auto& p : _PowerUps)
+				{
+					p->InitializeCollision(&_CollisionManager);
+                    p->SetGameManager(this);
+				}
+
+                _PowerUpNotifications.erase(
+                    std::remove_if(
+                        _PowerUpNotifications.begin(),
+                        _PowerUpNotifications.end(),
+                        [](const PowerUpNotification& n)
+                        {
+                            return n.timer <= 0.0f;
+                        }),
+                    _PowerUpNotifications.end());
             }
 
             _EngineContext->UpdateDialogue(elapsedTime, _EngineContext->currentTutorialDialogue);
@@ -1060,8 +1141,7 @@ void GameManager::UpdateTutorial(float elapsedTime)
 
             if (!_EngineContext->_ShowDialogue && powerUpCollected)
             {
-                _EngineContext->tutorialStep = ETutorialStep::BossWarning;
-                _EngineContext->tutorialStepStarted = false;
+                StartTransition(ETutorialStep::BossWarning);
             }
 
             break;
@@ -1124,5 +1204,24 @@ void GameManager::UpdateTutorial(float elapsedTime)
             _GameState = EGameState::Playing;
             break;
         }
+        case ETutorialStep::Transition:
+        {
+            transitionTimer -= elapsedTime;
+
+            if (transitionTimer <= 0.0f)
+            {
+                _EngineContext->tutorialStep = nextTutorialStep;
+                _EngineContext->tutorialStepStarted = false;
+            }
+
+            break;
+        }
     }
+}
+
+void GameManager::StartTransition(ETutorialStep nextStep)
+{
+    nextTutorialStep = nextStep;
+    transitionTimer = 1.0f;
+    _EngineContext->tutorialStep = ETutorialStep::Transition;
 }

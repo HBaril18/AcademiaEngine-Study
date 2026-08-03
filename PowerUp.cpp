@@ -67,7 +67,6 @@ void PowerUp::Draw(AcademiaEngine& engine)
 
 void PowerUp::Apply(Player& player)
 {
-    temp = 0.0f;
     switch (type)
     {
     case PowerUpType::Heal:
@@ -92,19 +91,14 @@ void PowerUp::Apply(Player& player)
         temp = player.GetShield();
         break;
     }
+
+    std::stringstream ss;
+    ss << GetTypeName(type) << ": " << temp;
+
+    gameManager->AddPowerUpNotification(ss.str());
 }
 
 void PowerUp::Update(AcademiaEngine& engine, float elapsedTime) {
-    if (collected)
-    {
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(1) << temp;
-
-        auto text = std::string(GetTypeName(GetType())) + " : " + oss.str();
-
-        gameManager->AddPowerUpNotification(text);
-    }
-
     _animationTimer += elapsedTime;
 
     if (_animationTimer >= 0.1f)

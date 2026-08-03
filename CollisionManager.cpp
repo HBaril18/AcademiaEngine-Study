@@ -543,7 +543,7 @@ void CollisionManager::CheckCollision(
 			p = static_cast<Player*>(colliderB->owner);
 		}
 
-		if (pu && p)
+		if (pu && p && !pu->collected)
 		{
 			pu->Apply(*p);
 			pu->collected = true;

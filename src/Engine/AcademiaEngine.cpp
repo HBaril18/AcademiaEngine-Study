@@ -517,7 +517,7 @@ void AcademiaEngine::DrawLobbyPanel()
 
 void AcademiaEngine::DrawFooter()
 {
-    std::string footer = "v0.2  |  AWAKENING OF THE VOID";
+    std::string footer = "v0.1.0  |  AWAKENING OF THE VOID";
     olc::vf2d scale = { 1.0f, 1.0f };
 
     olc::vi2d textSize = GetTextSize(footer);

@@ -4,6 +4,7 @@
 #include <deque>
 #include <memory>
 #include <unordered_set>
+#include <unordered_map>
 
 // Forward declarations to avoid circular includes
 class Player;

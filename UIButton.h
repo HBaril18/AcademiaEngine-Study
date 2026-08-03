@@ -1,5 +1,5 @@
 #pragma once
-#include <olc/olcPixelGameEngine.h>
+#include "external/olc/olcPixelGameEngine.h"
 #include "../AcademiaEngine-Study/src/Engine/AcademiaEngine.h"
 #include <functional>
 

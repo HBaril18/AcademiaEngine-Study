@@ -1,5 +1,4 @@
 #pragma once
-#include <Utils.h>
 #include <memory>
 #include <atomic>
 #include <vector>
@@ -8,17 +7,18 @@
 #define ACADEMIA_EXAMPLE
 
 #ifdef ACADEMIA_EXAMPLE
+#include "../Utils.h"
 #include "ExampleGameObject.h"
-#include "Player.h"
-#include "Bullet.h"
-#include "Ennemies.h"
-#include "Spawner.h"
+#include "../../Player.h"
+#include "../../Bullet.h"
+#include "../../Ennemies.h"
+#include "../../Spawner.h"
 #include "../../CollisionManager.h"
 #include "../../PeriodicTimer.h"
-#include "external/olc/olcPixelGameEngine.h"
+#include "../../external/olc/olcPixelGameEngine.h"
 #include "../../EngineState.h"
-#include "Explosion.h"
-#include "EnemyBullet.h"
+#include "../../Explosion.h"
+#include "../../EnemyBullet.h"
 #endif
 
 class AcademiaEngine;
@@ -72,6 +72,7 @@ public:
     void Update(float elapsedTime);
     bool Uninitialize();
     void DrawUI();
+    void DrawSkipTutorial(float elapsedTime);
     void EndGameLogic(float elapsedTime);
     void InitializeGame();
 	void SetDifficultyLevel(EDifficultyLevel level) { _DifficultyLevel = level; }
@@ -125,6 +126,9 @@ public:
     }
 
     void UpdateTutorial(float elapsedTime);
+
+    void StartTransition(ETutorialStep nextStep);
+
     bool isDrawn = false;
 
     //Color used for UI
@@ -146,6 +150,11 @@ public:
     EGameState _GameState = EGameState::Playing;
 
     bool inBossFight = false;
+
+    ETutorialStep nextTutorialStep;
+    float transitionTimer = 0.0f;
+    float _tutorialSkipHintTimer = 10.0f;
+    float _skipBlinkTimer = 0.0f;
 
 protected:
 

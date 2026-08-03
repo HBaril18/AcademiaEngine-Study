@@ -36,6 +36,7 @@ enum class ETutorialStep
     PowerUp,
     BossWarning,
     CompleteMessage,
+    Transition,
     Finished
 };
 
