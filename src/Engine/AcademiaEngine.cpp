@@ -51,6 +51,13 @@ bool AcademiaEngine::OnUserCreate(){
     EnemyBulletDecal =
         new olc::Decal(&EnemyBullet);
 
+    if (!_AudioManager.Initialize())
+    {
+        return false;
+    }
+
+    _AudioManager.PlayMusic("assets/Audio/Musique/DarkSci-Fi.mp3");
+
     _GameManager = std::make_shared<GameManager>(this);
     _GameManager->Initialize(this);
 
@@ -70,6 +77,9 @@ bool AcademiaEngine::OnUserDestroy()
 {
     if (_GameManager)
         _GameManager->Uninitialize();
+
+    _AudioManager.StopMusic();
+    _AudioManager.Shutdown();
     
     return true;
 }
@@ -592,6 +602,7 @@ void AcademiaEngine::InitializeOptions()
     InitializeOptionsParticles();
     _State = EEngineState::Options;
 	_Buttons.clear();
+    _Sliders.clear();
 	//LOBBY BUTTON TO GO BACK TO LOBBY STATE
     auto lobbyButton = std::make_unique<UIButton>(this);
     lobbyButton->SetPosition(olc::vf2d(ScreenWidth() / 2 - 100, ScreenHeight() / 2));
@@ -618,8 +629,19 @@ void AcademiaEngine::InitializeOptions()
             );
         });
 
+    //SLIDER FOR AUDIO LEVEL
+    auto volumeSlider = std::make_unique<UISlider>(this);
+    volumeSlider->SetPosition(olc::vf2d(ScreenWidth() / 2 - 150, ScreenHeight() / 2 + 225));
+    volumeSlider->SetSize(olc::vf2d(300, 25));
+    volumeSlider->SetText("VOLUME");
+    volumeSlider->SetTextProvider([this] {
+        return "VOLUME: " /* + VOLUME LEVEL*/ ;
+        });
+    volumeSlider->SetTextScale(olc::vf2d(1.9f, 1.9f));
+
     _Buttons.push_back(std::move(lobbyButton));
 	_Buttons.push_back(std::move(difficultyButton));
+    _Sliders.push_back(std::move(volumeSlider));
 }
 
 void AcademiaEngine::InitializeOptionsParticles()
@@ -712,6 +734,14 @@ void AcademiaEngine::DrawOptions()
         auto& button = *buttonPtr;
 
         button.Draw();
+    }
+
+    //SLIDERS
+    for (auto& sliderPtr : _Sliders)
+    {
+        auto& slider = *sliderPtr;
+
+        slider.Draw();
     }
 
     DrawFooter();

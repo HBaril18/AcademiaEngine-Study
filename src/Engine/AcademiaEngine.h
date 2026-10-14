@@ -3,11 +3,14 @@
 #include "../../external/olc/olcPixelGameEngine.h"
 #include "../Utils.h"
 #include "../../UIButton.h"
+#include "../../UISlider.h"
 #include <deque>
 #include "../../EngineState.h"
+#include "AudioManager.h"
 
 class GameManager;
 class UIButton;
+class UISlider;
 
 struct SplashPixel
 {
@@ -157,6 +160,8 @@ private:
     void Update(float elapsedTime);
     void PostUpdate(float elapsedTime);
 
+    AudioManager _AudioManager;
+
     EEngineState _State = EEngineState::SplashScreen;
 	EEngineState _PendingState;
     float _SplashTimer = 0.0f;
@@ -180,4 +185,5 @@ private:
     float _OptionsTime = 0.0f;
 
     std::deque<std::unique_ptr<UIButton>> _Buttons;
+    std::deque<std::unique_ptr<UISlider>> _Sliders;
 };
