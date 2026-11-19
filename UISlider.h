@@ -27,17 +27,10 @@ public:
     }
 
     //CALLBACK FOR SLIDER SLIDE EVENT
-    void SetOnSlide(const std::function<void()>& callback)
-    {
-        _OnClick = callback;
-    }
-    void ExecuteOnSlide()
-    {
-        if (_OnClick)
-        {
-            _OnClick();
-        }
-    }
+    void SetOnSlide(const std::function<void(float)>& callback);
+    void ExecuteOnSlide(float value);
+
+    void Update(olc::vi2d mousePos, bool isDragging);
 
     void SetPosition(const olc::vf2d& position) { _Position = position; }
     void SetSize(const olc::vf2d& size) { _Size = size; }
@@ -48,15 +41,9 @@ public:
     olc::vf2d GetSize() const { return _Size; }
     std::string GetText() const { return _Text; }
     olc::vf2d GetTextScale() const { return _TextScale; }
+    float GetSliderValue() const { return _SliderAmount; }
 
-    void DrawMovingSlider(
-        olc::vf2d fromStart,
-        olc::vf2d toEnd,
-        bool startsLeft,
-        bool endsRight,
-        float anim,
-        float length,
-        olc::Pixel color);
+    void DrawMovingSlider(olc::Pixel color, olc::vf2d size);
 
     float Lerp(float a, float b, float t)
     {
@@ -91,5 +78,7 @@ private:
     AcademiaEngine* _EngineContext = nullptr;
 
     std::function<void()> _OnClick;
+    std::function<void(float)> _OnSlide;
+    float _SliderAmount = 0.0f;
     std::function<std::string()> _TextProvider;
 };

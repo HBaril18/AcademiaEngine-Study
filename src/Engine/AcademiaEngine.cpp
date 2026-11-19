@@ -634,8 +634,11 @@ void AcademiaEngine::InitializeOptions()
     volumeSlider->SetPosition(olc::vf2d(ScreenWidth() / 2 - 150, ScreenHeight() / 2 + 225));
     volumeSlider->SetSize(olc::vf2d(300, 25));
     volumeSlider->SetText("VOLUME");
-    volumeSlider->SetTextProvider([this] {
-        return "VOLUME: " /* + VOLUME LEVEL*/ ;
+    float temp = volumeSlider->GetSliderValue();
+    std::string Text = "VOLUME: " + std::to_string(temp);
+
+    volumeSlider->SetTextProvider([Text]{
+        return Text;
         });
     volumeSlider->SetTextScale(olc::vf2d(1.9f, 1.9f));
 
@@ -742,6 +745,11 @@ void AcademiaEngine::DrawOptions()
         auto& slider = *sliderPtr;
 
         slider.Draw();
+
+        slider.SetOnSlide([this](float value)
+            {
+                
+            });
     }
 
     DrawFooter();

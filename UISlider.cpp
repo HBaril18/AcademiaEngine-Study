@@ -13,6 +13,22 @@ bool UISlider::OnHover()
         _EngineContext->GetMouseY() <= _Position.y + _Size.y;
 }
 
+void UISlider::Update(olc::vi2d mousePos, bool isDragging)
+{
+    if (isDragging)
+    {
+        //basically looking for the mouse to be hover the slider
+        if (mousePos.x <= _Position.x + _Size.x && mousePos.x >= _Position.x && mousePos.y <= _Position.y + _Size.y && mousePos.y >= _Position.y)
+        {
+            float value = (mousePos.x - _Position.x) / _Size.x;
+
+            _SliderAmount = std::clamp(value, 0.0f, 1.0f);
+
+            ExecuteOnSlide(_SliderAmount);
+        }
+    }
+}
+
 void UISlider::Draw(){
     olc::Pixel purple = olc::Pixel(170, 45, 255);
     olc::Pixel darkPurple = olc::Pixel(55, 15, 95);
@@ -24,6 +40,9 @@ void UISlider::Draw(){
 
     olc::vf2d pos = _Position;
     olc::vf2d size = _Size;
+
+    float volume = 50.0f;
+    float MaxVolume = 100.0f;
 
     bool hover = OnHover();
 
@@ -148,4 +167,22 @@ void UISlider::Draw(){
         hover ? olc::Pixel(255, 245, 255) : white,
         _TextScale
     );
+}
+
+void UISlider::SetOnSlide(const std::function<void(float)>& callback)
+{
+    _OnSlide = callback;
+}
+
+void UISlider::ExecuteOnSlide(float value)
+{
+    if (_OnSlide)
+    {
+        _SliderAmount = value;
+        _OnSlide(_SliderAmount);
+    }
+}
+
+void UISlider::DrawMovingSlider(olc::Pixel color, olc::vf2d size) {
+    _EngineContext->DrawRectDecal(_Position, size, color);
 }
